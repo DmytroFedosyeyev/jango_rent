@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Дашборд</h1>
+  <p>Текущий месяц: {{ current_month }}</p>
+  <p>Текущий год: {{ current_year }}</p>
+
+  <h2>Список расходов</h2>
+  {% if expenses %}
+    <ul>
+      {% for expense in expenses %}
+        <li>
+          {{ expense.date }} — <strong>{{ expense.get_category_display }}</strong>:
+          {{ expense.amount }} € {% if expense.paid %}(оплачено){% else %}(не оплачено){% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    <p><strong>Итого:</strong> {{ total_expenses }} €</p>
+  {% else %}
+    <p>Расходов пока нет.</p>
+  {% endif %}
+
+  <a href="{% url 'add_expense' %}">Добавить расход</a>
+{% endblock %}

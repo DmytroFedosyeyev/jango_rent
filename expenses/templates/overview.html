@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Обзор расходов{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Обзор расходов</h2>
+    <p>Текущий месяц: {{ current_month }} {{ current_year }}</p>
+
+    <h3>Последние расходы</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Категория</th>
+                <th>Сумма (€)</th>
+                <th>Дата</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in recent_expenses %}
+            <tr>
+                <td>{{ expense.get_category_display }}</td>
+                <td>{{ expense.amount|floatformat:2 }}</td>
+                <td>{{ expense.date }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">Нет недавних расходов</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3>Суммы</h3>
+    <p>Всего за всё время: {{ total_all_time|floatformat:2 }} €</p>
+    <p>Всего за {{ current_year }}: {{ total_year|floatformat:2 }} €</p>
+
+    <h3>Графики потребления</h3>
+    <div style="margin-bottom: 20px;">
+        <h4>Расход электроэнергии (кВт·ч)</h4>
+        <canvas id="electricityChart" width="400" height="200"></canvas>
+    </div>
+    <div>
+        <h4>Расход воды (м³)</h4>
+        <canvas id="waterChart" width="400" height="200"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+    // График электроэнергии
+    new Chart(document.getElementById('electricityChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ chart_months|safe }},
+            datasets: [{
+                label: 'Электричество (кВт·ч)',
+                data: {{ electricity_data|safe }},
+                backgroundColor: '#007bff',
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'кВт·ч' }
+                }
+            }
+        }
+    });
+
+    // График воды
+    new Chart(document.getElementById('waterChart'), {
+        type: 'line',
+        data: {
+            labels: {{ chart_months|safe }},
+            datasets: [
+                {
+                    label: 'Холодная вода (м³)',
+                    data: {{ cold_water_data|safe }},
+                    borderColor: '#007bff',
+                    fill: false
+                },
+                {
+                    label: 'Горячая вода (м³)',
+                    data: {{ hot_water_data|safe }},
+                    borderColor: '#dc3545',
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'м³' }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

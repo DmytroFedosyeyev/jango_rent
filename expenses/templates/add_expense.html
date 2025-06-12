@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Добавить расход{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Добавить данные</h2>
+
+    <!-- Блок 1: Финансовый расход -->
+    <div class="form-block">
+        <h3>Добавить финансовый расход</h3>
+        <form method="post" class="expense-form">
+            {% csrf_token %}
+            {{ expense_form.as_p }}
+            <button type="submit" class="btn btn-primary">Сохранить расход</button>
+        </form>
+    </div>
+
+    <!-- Блок 2: Показания счётчиков -->
+    <div class="form-block">
+        <h3>Добавить показания счётчиков</h3>
+        <form method="post" class="meter-form">
+            {% csrf_token %}
+            {{ meter_form.as_p }}
+            <button type="submit" class="btn btn-primary">Сохранить показания</button>
+        </form>
+    </div>
+</div>
+
+<style>
+.form-block {
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+.expense-form, .meter-form {
+    max-width: 400px;
+}
+.btn-primary {
+    margin-top: 10px;
+}
+</style>
+{% endblock %}
