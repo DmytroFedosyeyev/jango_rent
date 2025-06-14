@@ -76,7 +76,6 @@ def home(request):
     today = date.today()
     current_month = today.month
     current_year = today.year
-
     start_of_month = today.replace(day=1)
 
     expenses = Expense.objects.filter(
@@ -91,9 +90,11 @@ def home(request):
 
     rent = rent_expense.amount if rent_expense else 0
     utilities = utilities_expense.amount if utilities_expense else 0
-    electricity = electricity_expense.amount if electricity_expense else 0
+    electricity = electricity_expense.amount if electricity_expense else 0  # Исправлено
+
     total = Decimal(rent) + Decimal(utilities) + Decimal(electricity)
 
+    # Долги
     past_expenses = Expense.objects.filter(
         user=request.user,
         date__lt=start_of_month
@@ -103,20 +104,18 @@ def home(request):
     electricity_debt = past_expenses.filter(category='electricity').aggregate(total_debt=Sum('debt'))['total_debt'] or Decimal('0.00')
     total_debt = Decimal(rent_debt) + Decimal(utilities_debt) + Decimal(electricity_debt)
 
+    # Календарь месяцев
     months = []
     for month in range(1, 13):
         start_date = date(2025, month, 1)
         _, last_day = monthrange(2025, month)
         end_date = date(2025, month, last_day)
-
         month_expenses = Expense.objects.filter(
             user=request.user,
             date__range=[start_date, end_date]
         )
         total_month_debt = month_expenses.aggregate(total_debt=Sum('debt'))['total_debt'] or Decimal('0.00')
-
         status = 'future' if month > current_month else ('paid' if total_month_debt == 0 else 'debt')
-
         months.append({
             'name': ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'][month-1],
             'status': status,
@@ -270,7 +269,6 @@ def overview(request):
     }
     return render(request, 'overview.html', context)
 
-
 @login_required
 def pay_expense(request, category):
     if request.method == 'POST':
@@ -302,10 +300,10 @@ def pay_expense(request, category):
             if expense.debt <= 0:
                 expense.debt = Decimal('0.00')
                 expense.paid = True
-            expense.payment_date = payment_date  # Сохраняем дату оплаты
+            expense.payment_date = payment_date
             expense.save()
         else:
-            initial_amount = amount  # Убираем фиксированную сумму
+            initial_amount = amount
             debt = initial_amount - amount
             paid = debt <= 0
             Expense.objects.create(
@@ -313,7 +311,7 @@ def pay_expense(request, category):
                 category=category,
                 amount=initial_amount,
                 debt=debt if debt > 0 else Decimal('0.00'),
-                date=payment_date,  # Используем дату создания
+                date=payment_date,
                 payment_date=payment_date,
                 paid=paid
             )

@@ -63,7 +63,7 @@
             </tr>
             <tr>
                 <td>Электричество</td>
-                <td>{{ utilities.amount|floatformat:2 }}</td>
+                <td>{{ electricity.amount|floatformat:2 }}</td>
                 <td>
                     {{ electricity.debt|floatformat:2 }}
                     {% if not electricity.paid and electricity.amount > 0 %}
