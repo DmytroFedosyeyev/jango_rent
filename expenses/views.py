@@ -10,6 +10,7 @@ from django.urls import reverse
 from decimal import Decimal
 from calendar import monthrange
 from .forms import EditSingleReadingForm
+from django.db.models import Avg, Max, Min
 
 
 logger = logging.getLogger(__name__)
@@ -243,53 +244,76 @@ def edit_meter_reading(request, pk):
 @login_required
 def overview(request):
     today = date.today()
-    expenses = Expense.objects.filter(user=request.user).order_by('-date')[:5]
-    total_all_time = Expense.objects.filter(user=request.user).aggregate(total=Sum('amount'))['total'] or 0
-    total_year = Expense.objects.filter(user=request.user, date__year=today.year).aggregate(total=Sum('amount'))['total'] or 0
+    year = today.year
 
-    # Данные для графиков (по месяцам за 2025)
+    # Последние расходы
+    expenses = Expense.objects.filter(user=request.user).order_by('-date')[:5]
+
+    total_all_time = Expense.objects.filter(user=request.user).aggregate(total=Sum('amount'))['total'] or 0
+    total_year = Expense.objects.filter(user=request.user, date__year=year).aggregate(total=Sum('amount'))['total'] or 0
+
+    # Подсчёт месячного потребления (по разнице между показаниями)
+    def get_monthly_usage(category, start_date, end_date):
+        current = MeterReading.objects.filter(
+            user=request.user,
+            category=category,
+            date__lte=end_date
+        ).order_by('-date').first()
+
+        previous = MeterReading.objects.filter(
+            user=request.user,
+            category=category,
+            date__lt=start_date
+        ).order_by('-date').first()
+
+        if current and previous:
+            return round(float(current.value - previous.value), 2)
+        return 0.0
+
     months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
-    electricity_data = []
-    cold_water_data = []
-    hot_water_data = []
+    electricity_usage = []
+    cold_water_usage = []
+    hot_water_usage = []
 
     for month in range(1, 13):
-        start_date = date(2025, month, 1)
-        _, last_day = monthrange(2025, month)
-        end_date = date(2025, month, last_day)
+        start_date = date(year, month, 1)
+        _, last_day = monthrange(year, month)
+        end_date = date(year, month, last_day)
 
-        electricity = MeterReading.objects.filter(
-            user=request.user,
-            category='electricity',
-            date__range=[start_date, end_date]
-        ).aggregate(total=Sum('value'))['total'] or 0
-        cold_water = MeterReading.objects.filter(
-            user=request.user,
-            category='cold_water',
-            date__range=[start_date, end_date]
-        ).aggregate(total=Sum('value'))['total'] or 0
-        hot_water = MeterReading.objects.filter(
-            user=request.user,
-            category='hot_water',
-            date__range=[start_date, end_date]
-        ).aggregate(total=Sum('value'))['total'] or 0
+        electricity = get_monthly_usage('electricity', start_date, end_date)
+        cold = get_monthly_usage('cold_water', start_date, end_date)
+        hot = get_monthly_usage('hot_water', start_date, end_date)
 
-        electricity_data.append(float(electricity))
-        cold_water_data.append(float(cold_water))
-        hot_water_data.append(float(hot_water))
+        electricity_usage.append(electricity)
+        cold_water_usage.append(cold)
+        hot_water_usage.append(hot)
+
+    def compute_stats(data):
+        filtered = [d for d in data if d > 0]
+        if not filtered:
+            return {'min': 0, 'max': 0, 'avg': 0}
+        return {
+            'min': min(filtered),
+            'max': max(filtered),
+            'avg': round(sum(filtered) / len(filtered), 2),
+        }
 
     context = {
         'current_month': today.strftime('%B'),
-        'current_year': today.year,
+        'current_year': year,
         'recent_expenses': expenses,
         'total_all_time': total_all_time,
         'total_year': total_year,
         'chart_months': months,
-        'electricity_data': electricity_data,
-        'cold_water_data': cold_water_data,
-        'hot_water_data': hot_water_data,
+        'electricity_data': electricity_usage,
+        'cold_water_data': cold_water_usage,
+        'hot_water_data': hot_water_usage,
+        'electricity_stats': compute_stats(electricity_usage),
+        'cold_water_stats': compute_stats(cold_water_usage),
+        'hot_water_stats': compute_stats(hot_water_usage),
     }
     return render(request, 'overview.html', context)
+
 
 @login_required
 def pay_expense(request, category):

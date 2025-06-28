@@ -1,4 +1,5 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load form_filters %}
 
 {% block title %}Добавить расход{% endblock %}
 
@@ -8,38 +9,92 @@
 
     <!-- Блок 1: Финансовый расход -->
     <div class="form-block">
-        <h3>Добавить финансовый расход</h3>
-        <form method="post" class="expense-form">
+        <h3>Финансовый расход</h3>
+        <form method="post" class="styled-form">
             {% csrf_token %}
-            {{ expense_form.as_p }}
-            <button type="submit" class="btn btn-primary">Сохранить расход</button>
+            {% for field in expense_form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field|add_class:"form-control" }}
+                    {% if field.errors %}
+                        <div class="errorlist">{{ field.errors }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn-submit">Сохранить расход</button>
         </form>
     </div>
 
     <!-- Блок 2: Показания счётчиков -->
     <div class="form-block">
-        <h3>Добавить показания счётчиков</h3>
-        <form method="post" class="meter-form">
+        <h3>Показания счётчиков</h3>
+        <form method="post" class="styled-form">
             {% csrf_token %}
-            {{ meter_form.as_p }}
-            <button type="submit" class="btn btn-primary">Сохранить показания</button>
+            {% for field in meter_form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field|add_class:"form-control" }}
+                    {% if field.errors %}
+                        <div class="errorlist">{{ field.errors }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn-submit">Сохранить показания</button>
         </form>
     </div>
 </div>
 
 <style>
+.container {
+    max-width: 800px;
+    margin: 40px auto;
+    font-family: 'Segoe UI', sans-serif;
+}
+h2, h3 {
+    color: #333;
+}
 .form-block {
-    margin-bottom: 30px;
-    padding: 20px;
+    margin-bottom: 40px;
+    padding: 25px;
     border: 1px solid #ddd;
+    border-radius: 12px;
+    background-color: #fafafa;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.form-group {
+    margin-bottom: 20px;
+}
+label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #555;
+}
+.form-control {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 16px;
+    border: 1px solid #ccc;
     border-radius: 8px;
-    background-color: #f9f9f9;
+    box-sizing: border-box;
 }
-.expense-form, .meter-form {
-    max-width: 400px;
+.errorlist {
+    color: #d9534f;
+    margin-top: 6px;
+    font-size: 14px;
 }
-.btn-primary {
-    margin-top: 10px;
+.btn-submit {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+.btn-submit:hover {
+    background-color: #0056b3;
 }
 </style>
 {% endblock %}

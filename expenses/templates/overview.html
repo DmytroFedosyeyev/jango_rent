@@ -99,4 +99,35 @@
         }
     });
 </script>
+
+<hr>
+<h3>Статистика потребления за {{ current_year }}</h3>
+
+<div class="row">
+    <div class="col">
+        <h4>Электричество (кВт·ч)</h4>
+        <ul>
+            <li>Максимум: {{ electricity_stats.max|floatformat:2 }}</li>
+            <li>Минимум: {{ electricity_stats.min|floatformat:2 }}</li>
+            <li>Среднее: {{ electricity_stats.avg|floatformat:2 }}</li>
+        </ul>
+    </div>
+    <div class="col">
+        <h4>Холодная вода (м³)</h4>
+        <ul>
+            <li>Максимум: {{ cold_water_stats.max|floatformat:2 }}</li>
+            <li>Минимум: {{ cold_water_stats.min|floatformat:2 }}</li>
+            <li>Среднее: {{ cold_water_stats.avg|floatformat:2 }}</li>
+        </ul>
+    </div>
+    <div class="col">
+        <h4>Горячая вода (м³)</h4>
+        <ul>
+            <li>Максимум: {{ hot_water_stats.max|floatformat:2 }}</li>
+            <li>Минимум: {{ hot_water_stats.min|floatformat:2 }}</li>
+            <li>Среднее: {{ hot_water_stats.avg|floatformat:2 }}</li>
+        </ul>
+    </div>
+</div>
+
 {% endblock %}
