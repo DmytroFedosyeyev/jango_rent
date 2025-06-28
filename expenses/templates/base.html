@@ -105,7 +105,11 @@
         <a href="{% url 'expenses:overview' %}">Обзор расходов</a>
         <a href="{% url 'expenses:add_expense' %}">Добавить расход</a>
         <a href="{% url 'expenses:filter_expenses' %}">Выборка за период</a>
-        <a href="{% url 'logout' %}">Выход</a>
+
+        <form method="post" action="{% url 'logout' %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary">Выход</button>
+         </form>
     </nav>
     {% endif %}
 
