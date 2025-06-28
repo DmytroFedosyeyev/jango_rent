@@ -1,15 +1,16 @@
 import logging
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from .forms import ExpenseForm, MeterReadingForm
 from .models import Expense, MeterReading
 from django.contrib.auth.decorators import login_required
-from datetime import date, datetime
+from datetime import date
 from django.db.models import Sum
 from django.http import HttpResponseBadRequest
 from django.urls import reverse
 from decimal import Decimal
-from dateutil.relativedelta import relativedelta
 from calendar import monthrange
+from .forms import EditSingleReadingForm
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ def add_expense(request):
                 logger.debug(f"Saved expense: {expense}")
 
             if meter_valid:
-                date = meter_form.cleaned_data['date']
+                date_ = meter_form.cleaned_data['date']
                 electricity_usage = meter_form.cleaned_data['electricity_usage']
                 cold_water_usage = meter_form.cleaned_data['cold_water_usage']
                 hot_water_usage = meter_form.cleaned_data['hot_water_usage']
@@ -41,7 +42,7 @@ def add_expense(request):
                         user=request.user,
                         category='electricity',
                         value=electricity_usage,
-                        date=date
+                        date=date_
                     )
                     logger.debug(f"Saved electricity reading: {electricity_usage} kWh")
                 if cold_water_usage is not None:
@@ -49,7 +50,7 @@ def add_expense(request):
                         user=request.user,
                         category='cold_water',
                         value=cold_water_usage,
-                        date=date
+                        date=date_
                     )
                     logger.debug(f"Saved cold water reading: {cold_water_usage} m³")
                 if hot_water_usage is not None:
@@ -57,7 +58,7 @@ def add_expense(request):
                         user=request.user,
                         category='hot_water',
                         value=hot_water_usage,
-                        date=date
+                        date=date_
                     )
                     logger.debug(f"Saved hot water reading: {hot_water_usage} m³")
 
@@ -90,7 +91,7 @@ def home(request):
 
     rent = rent_expense.amount if rent_expense else 0
     utilities = utilities_expense.amount if utilities_expense else 0
-    electricity = electricity_expense.amount if electricity_expense else 0  # Исправлено
+    electricity = electricity_expense.amount if electricity_expense else 0
 
     total = Decimal(rent) + Decimal(utilities) + Decimal(electricity)
 
@@ -187,6 +188,12 @@ def filter_expenses(request):
     total = Decimal(rent) + Decimal(utilities) + Decimal(electricity)
     total_debt = Decimal(rent_debt) + Decimal(utilities_debt) + Decimal(electricity_debt)
 
+    # Получаем показания счетчиков за выбранный период
+    meter_readings = MeterReading.objects.filter(
+        user=request.user,
+        date__range=[start_date, end_date]
+    ).order_by('date', 'category')
+
     context = {
         'start_date': start_date,
         'end_date': end_date,
@@ -213,10 +220,25 @@ def filter_expenses(request):
         },
         'total': total,
         'total_debt': total_debt,
+        'meter_readings': meter_readings,
     }
 
     logger.debug(f"Session after: {request.session.items()}")
     return render(request, 'filter_expenses.html', context)
+
+@login_required
+def edit_meter_reading(request, pk):
+    reading = get_object_or_404(MeterReading, pk=pk, user=request.user)
+
+    if request.method == 'POST':
+        form = EditSingleReadingForm(request.POST, instance=reading)
+        if form.is_valid():
+            form.save()
+            return redirect('expenses:filter_expenses')
+    else:
+        form = EditSingleReadingForm(instance=reading)
+
+    return render(request, 'edit_meter_reading.html', {'form': form})
 
 @login_required
 def overview(request):

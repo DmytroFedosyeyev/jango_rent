@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load form_filters %}
+
+{% block title %}Редактировать показания{% endblock %}
+
+{% block content %}
+<style>
+    .edit-form-container {
+        max-width: 600px;
+        margin: 50px auto;
+        padding: 30px;
+        background: #f9f9f9;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        font-family: Arial, sans-serif;
+    }
+
+    .edit-form-container h2 {
+        margin-bottom: 25px;
+        font-size: 28px;
+        color: #333;
+        text-align: center;
+    }
+
+    .edit-form-container label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 600;
+        color: #555;
+        font-size: 15px;
+    }
+
+    .edit-form-container input,
+    .edit-form-container select,
+    .edit-form-container textarea {
+        width: 100%;
+        padding: 12px 14px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        background-color: #fff;
+        box-sizing: border-box;
+    }
+
+    .edit-form-container .btn-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+    }
+
+    .edit-form-container button,
+    .edit-form-container a {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 16px;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .edit-form-container button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        transition: background-color 0.3s ease;
+    }
+
+    .edit-form-container button:hover {
+        background-color: #0056b3;
+    }
+
+    .edit-form-container a {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+    }
+
+    .edit-form-container a:hover {
+        background-color: #5a6268;
+    }
+
+    .errorlist {
+        color: #d9534f;
+        margin-top: -10px;
+        margin-bottom: 15px;
+        font-size: 14px;
+    }
+</style>
+
+<div class="edit-form-container">
+    <h2>Редактировать показания</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        {% for field in form %}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field|add_class:"form-control" }}
+            {{ field.errors }}
+        {% endfor %}
+
+        <div class="btn-row">
+            <a href="{% url 'expenses:filter_expenses' %}">Назад</a>
+            <button type="submit">Сохранить</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

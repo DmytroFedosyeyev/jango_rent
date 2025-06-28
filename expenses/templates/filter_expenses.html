@@ -20,6 +20,7 @@
             </div>
         </div>
     </form>
+
     {% if start_date and end_date %}
     <h3 style="color: #2c3e50; margin-bottom: 15px;">Расходы за период с {{ start_date }} по {{ end_date }}</h3>
     <table class="table">
@@ -28,6 +29,7 @@
                 <th>Категория</th>
                 <th>Сумма (€)</th>
                 <th>Долг (€)</th>
+                <th>Действия</th>
             </tr>
         </thead>
         <tbody>
@@ -37,13 +39,14 @@
                 <td>
                     {{ rent.debt|floatformat:2 }}
                     {% if not rent.paid %}
-                    <button class="btn btn-primary btn-small pay-btn" data-category="rent">Оплатить</button>
+                        <button class="btn btn-primary btn-small pay-btn" data-category="rent">Оплатить</button>
                     {% else %}
-                    <span class="status status-paid">
-                        Оплачено{% if rent.expense.payment_date %} ({{ rent.expense.payment_date|date:"d.m.Y" }}){% endif %}
-                    </span>
+                        <span class="status status-paid">
+                            Оплачено{% if rent.expense.payment_date %} ({{ rent.expense.payment_date|date:"d.m.Y" }}){% endif %}
+                        </span>
                     {% endif %}
                 </td>
+                <td></td>
             </tr>
             <tr>
                 <td>Коммунальные</td>
@@ -51,15 +54,16 @@
                 <td>
                     {{ utilities.debt|floatformat:2 }}
                     {% if not utilities.paid and utilities.amount > 0 %}
-                    <button class="btn btn-primary btn-small pay-btn" data-category="utilities">Оплатить</button>
+                        <button class="btn btn-primary btn-small pay-btn" data-category="utilities">Оплатить</button>
                     {% else %}
-                    {% if utilities.paid %}
-                    <span class="status status-paid">
-                        Оплачено{% if utilities.expense.payment_date %} ({{ utilities.expense.payment_date|date:"d.m.Y" }}){% endif %}
-                    </span>
-                    {% endif %}
+                        {% if utilities.paid %}
+                            <span class="status status-paid">
+                                Оплачено{% if utilities.expense.payment_date %} ({{ utilities.expense.payment_date|date:"d.m.Y" }}){% endif %}
+                            </span>
+                        {% endif %}
                     {% endif %}
                 </td>
+                <td></td>
             </tr>
             <tr>
                 <td>Электричество</td>
@@ -67,29 +71,65 @@
                 <td>
                     {{ electricity.debt|floatformat:2 }}
                     {% if not electricity.paid and electricity.amount > 0 %}
-                    <button class="btn btn-primary btn-small pay-btn" data-category="electricity">Оплатить</button>
+                        <button class="btn btn-primary btn-small pay-btn" data-category="electricity">Оплатить</button>
                     {% else %}
-                    {% if electricity.paid %}
-                    <span class="status status-paid">
-                        Оплачено{% if electricity.expense.payment_date %} ({{ electricity.expense.payment_date|date:"d.m.Y" }}){% endif %}
-                    </span>
-                    {% endif %}
+                        {% if electricity.paid %}
+                            <span class="status status-paid">
+                                Оплачено{% if electricity.expense.payment_date %} ({{ electricity.expense.payment_date|date:"d.m.Y" }}){% endif %}
+                            </span>
+                        {% endif %}
                     {% endif %}
                 </td>
+                <td></td>
             </tr>
             <tr class="total-row">
                 <td><strong>Итого</strong></td>
                 <td><strong>{{ total|floatformat:2 }}</strong></td>
                 <td><strong>{{ total_debt|floatformat:2 }}</strong></td>
+                <td></td>
             </tr>
         </tbody>
     </table>
+
+    <h3 style="color: #2c3e50; margin-top: 40px;">Показания счетчиков</h3>
+    {% if meter_readings %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Дата</th>
+                <th>Категория</th>
+                <th>Значение</th>
+                <th>Действие</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reading in meter_readings %}
+            <tr>
+                <td>{{ reading.date|date:"d.m.Y" }}</td>
+                <td>
+                    {% if reading.category == 'electricity' %}Электричество
+                    {% elif reading.category == 'cold_water' %}Холодная вода
+                    {% elif reading.category == 'hot_water' %}Горячая вода
+                    {% else %}{{ reading.category }}{% endif %}
+                </td>
+                <td>{{ reading.value }}</td>
+                <td>
+                    <a href="{% url 'expenses:edit_meter_reading' reading.pk %}" class="btn btn-sm btn-warning">Редактировать</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>Показания счетчиков за выбранный период отсутствуют.</p>
+    {% endif %}
+
     {% else %}
     <p>Выберите период для отображения расходов.</p>
     {% endif %}
 </div>
 
-<!-- Модальное окно -->
+<!-- Модальное окно оплаты -->
 <div id="payModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
     <div style="background: white; padding: 20px; border-radius: 8px; width: 300px;">
         <h3>Оплата расхода</h3>
@@ -124,6 +164,9 @@
     color: green;
     font-weight: bold;
 }
+.total-row td {
+    font-weight: bold;
+}
 </style>
 
 <script>
@@ -131,7 +174,6 @@ function openModal(category) {
     document.getElementById('categoryInput').value = category;
     document.getElementById('payForm').action = "{% url 'expenses:pay_expense' 'temp' %}".replace('temp', category);
     document.getElementById('payModal').style.display = 'flex';
-    console.log('Form action set to: ' + document.getElementById('payForm').action);
 }
 
 function closeModal() {

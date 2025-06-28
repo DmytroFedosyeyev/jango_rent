@@ -26,3 +26,18 @@ class MeterReadingForm(forms.Form):  # Изменили на Form, так как
         widget=forms.DateInput(attrs={'type': 'date'}),
         label='Дата'
     )
+
+
+class EditSingleReadingForm(forms.ModelForm):
+    class Meta:
+        model = MeterReading
+        fields = ['category', 'value', 'date']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+            'value': forms.NumberInput(attrs={'step': '0.01'}),
+        }
+        labels = {
+            'category': 'Категория',
+            'value': 'Значение',
+            'date': 'Дата',
+        }
