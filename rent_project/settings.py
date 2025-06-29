@@ -127,7 +127,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'dashboard'  # Или куда тебе нужно после входа
+LOGIN_REDIRECT_URL = 'expenses:home'
 LOGOUT_REDIRECT_URL = 'login'
 
 LOGGING = {

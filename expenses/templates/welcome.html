@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Аренда квартиры{% endblock %}
+
+{% block content %}
+<style>
+.welcome-wrapper {
+    max-width: 720px;
+    margin: 80px auto;
+    padding: 40px;
+    background-color: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    text-align: center;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.welcome-wrapper h1 {
+    font-size: 36px;
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.welcome-wrapper p {
+    font-size: 18px;
+    margin-bottom: 30px;
+    color: #555;
+}
+
+.welcome-wrapper .btn {
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 0 10px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.btn-login {
+    background-color: #3498db;
+    color: white;
+}
+
+.btn-login:hover {
+    background-color: #2980b9;
+}
+
+.btn-register {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.btn-register:hover {
+    background-color: #27ae60;
+}
+</style>
+
+<div class="welcome-wrapper">
+    <h1>Аренда квартиры</h1>
+    <p>Добро пожаловать! Учет ваших расходов стал проще. Войдите или создайте аккаунт, чтобы начать.</p>
+    <a href="{% url 'login' %}" class="btn btn-login">Войти</a>
+    <a href="{% url 'register' %}" class="btn btn-register">Регистрация</a>
+</div>
+{% endblock %}

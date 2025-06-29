@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Регистрация{% endblock %}
+
+{% block content %}
+<style>
+    .register-wrapper {
+        max-width: 500px;
+        margin: 60px auto;
+        padding: 40px;
+        background-color: #fff;
+        border-radius: 14px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .register-wrapper h2 {
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 28px;
+        color: #2c3e50;
+    }
+
+    .register-wrapper form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .register-wrapper label {
+        font-weight: 600;
+        color: #34495e;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    .register-wrapper input[type="text"],
+    .register-wrapper input[type="email"],
+    .register-wrapper input[type="password"] {
+        padding: 12px 14px;
+        font-size: 15px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        width: 100%;
+        box-sizing: border-box;
+        background-color: #fdfdfd;
+        transition: border 0.3s;
+    }
+
+    .register-wrapper input:focus {
+        border-color: #3498db;
+        outline: none;
+    }
+
+    .register-wrapper .errorlist {
+        background-color: #fdecea;
+        color: #c0392b;
+        padding: 10px 14px;
+        border-radius: 6px;
+        font-size: 14px;
+        margin: -10px 0 10px;
+        list-style: none;
+    }
+
+    .register-wrapper .btn {
+        background-color: #3498db;
+        color: white;
+        font-size: 16px;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s ease;
+    }
+
+    .register-wrapper .btn:hover {
+        background-color: #2980b9;
+    }
+
+    .register-wrapper .login-link {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 14px;
+        color: #7f8c8d;
+    }
+
+    .register-wrapper .login-link a {
+        color: #3498db;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .register-wrapper .login-link a:hover {
+        text-decoration: underline;
+    }
+</style>
+
+<div class="register-wrapper">
+    <h2>Создание аккаунта</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+            {% if field.errors %}
+                <ul class="errorlist">{{ field.errors }}</ul>
+            {% endif %}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+        {% endfor %}
+        <button type="submit" class="btn">Зарегистрироваться</button>
+    </form>
+
+    <div class="login-link">
+        Уже есть аккаунт?
+        <a href="{% url 'login' %}">Войти</a>
+    </div>
+</div>
+{% endblock %}

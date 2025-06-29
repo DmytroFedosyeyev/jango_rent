@@ -1,6 +1,6 @@
 import logging
 from django.shortcuts import render, redirect, get_object_or_404
-from .forms import ExpenseForm, MeterReadingForm
+from .forms import ExpenseForm, MeterReadingForm, RegisterForm
 from .models import Expense, MeterReading
 from django.contrib.auth.decorators import login_required
 from datetime import date
@@ -11,6 +11,7 @@ from decimal import Decimal
 from calendar import monthrange
 from .forms import EditSingleReadingForm
 from django.db.models import Avg, Max, Min
+from django.contrib import messages
 
 
 logger = logging.getLogger(__name__)
@@ -371,3 +372,24 @@ def pay_expense(request, category):
             f"{reverse('expenses:filter_expenses')}?start_date={start_date or ''}&end_date={end_date or ''}")
 
     return HttpResponseBadRequest("Некорректный запрос")
+
+
+def register(request):
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Регистрация прошла успешно. Теперь войдите в систему.')
+            return redirect('login')
+    else:
+        form = RegisterForm()
+    return render(request, 'register.html', {'form': form})
+
+
+from django.shortcuts import render
+
+def welcome(request):
+    if request.user.is_authenticated:
+        return redirect('expenses:home')  # если вошел — на домашнюю
+    return render(request, 'welcome.html')
+

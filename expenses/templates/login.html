@@ -1,17 +1,92 @@
 {% extends 'base.html' %}
 
-  {% block title %}Вход{% endblock %}
+{% block title %}Вход в систему{% endblock %}
 
-  {% block content %}
-  <div class="container">
-      <h2>Вход в систему</h2>
-      {% if form.errors %}
-          <p style="color: #c0392b; font-weight: 600;">Неверный логин или пароль. Попробуйте снова.</p>
-      {% endif %}
-      <form method="post" style="display: flex; flex-direction: column; gap: 10px; max-width: 400px;">
-          {% csrf_token %}
-          {{ form.as_p }}
-          <button type="submit" class="btn btn-primary">Войти</button>
-      </form>
-  </div>
-  {% endblock %}
+{% block content %}
+<style>
+.login-wrapper {
+    max-width: 420px;
+    margin: 60px auto;
+    padding: 30px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.login-wrapper h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #2c3e50;
+    font-size: 26px;
+}
+
+.login-wrapper form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.login-wrapper input[type="text"],
+.login-wrapper input[type="password"] {
+    padding: 12px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+.login-wrapper .btn {
+    padding: 12px;
+    background-color: #3498db;
+    color: white;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.login-wrapper .btn:hover {
+    background-color: #2980b9;
+}
+
+.login-wrapper .error-message {
+    color: #c0392b;
+    background-color: #fceaea;
+    padding: 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.login-wrapper .register-link {
+    margin-top: 15px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.login-wrapper .register-link a {
+    color: #3498db;
+    text-decoration: none;
+}
+</style>
+
+<div class="login-wrapper">
+    <h2>Вход в систему</h2>
+
+    {% if form.errors %}
+        <div class="error-message">Неверный логин или пароль. Попробуйте снова.</div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.username.label_tag }} {{ form.username }}
+        {{ form.password.label_tag }} {{ form.password }}
+        <button type="submit" class="btn">Войти</button>
+    </form>
+
+    <div class="register-link">
+        <p style="margin-top: 20px;">Нет аккаунта? <a href="{% url 'expenses:register' %}">Зарегистрируйтесь</a></p>
+    </div>
+</div>
+{% endblock %}
