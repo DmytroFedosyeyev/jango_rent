@@ -22,12 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-8m#83tax1@yn&)lwk#xequb&r7c6vihqbt3smft0z+p@zp@umm'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-8m#83tax1@yn&)lwk#xequb&r7c6vihqbt3smft0z+p@zp@umm')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['jango-rent.onrender.com']
 
 
 # Application definition
@@ -76,11 +76,14 @@ WSGI_APPLICATION = 'rent_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+import dj_database_url
+import os
+
 DATABASES = {
-    'default': dj_database_url.parse(
-        'postgresql://jango_rent_user:m2Kzac8VJY6vtQtO8iLDUZ69R8iZA3oq@dpg-d1hs6dur433s73bbjh8g-a.frankfurt-postgres.render.com:5432/jango_rent',
+    'default': dj_database_url.config(
+        default=os.environ.get('postgresql://jango_rent_user:m2Kzac8VJY6vtQtO8iLDUZ69R8iZA3oq@dpg-d1hs6dur433s73bbjh8g-a.frankfurt-postgres.render.com/jango_rent'),
         conn_max_age=600,
-        ssl_require=True,
+        ssl_require=True
     )
 }
 
