@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: jango-rent
+    env: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn rent_project.wsgi:application"
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: rent_project.settings
+      - key: PYTHON_VERSION
+        value: 3.10
