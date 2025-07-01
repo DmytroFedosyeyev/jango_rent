@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Build script for Render.com
+# Exit on error
+set -o errexit
 
-# Установить зависимости
+# Install dependencies
 pip install -r requirements.txt
 
-# Применить миграции
-python manage.py migrate
-
-# Собрать статику
+# Collect static files
 python manage.py collectstatic --noinput
+
+# Run migrations
+python manage.py migrate
