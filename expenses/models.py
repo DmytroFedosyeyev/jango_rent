@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-
 class Expense(models.Model):
     CATEGORY_CHOICES = [
         ('rent', 'Аренда'),
@@ -17,6 +16,7 @@ class Expense(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     debt = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Новое поле
     payment_date = models.DateField(null=True, blank=True)
+    payment_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Новое поле
 
     def __str__(self):
         return f"{self.get_category_display()} - {self.amount}€ ({self.date})"

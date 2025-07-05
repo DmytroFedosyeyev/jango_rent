@@ -11,4 +11,5 @@ urlpatterns = [
     path('overview/', views.overview, name='overview'),
     path('pay/<str:category>/', views.pay_expense, name='pay_expense'),
     path('meter/edit/<int:pk>/', views.edit_meter_reading, name='edit_meter_reading'),
+    path('pay_all/', views.pay_all_expenses, name='pay_all_expenses'),
 ]

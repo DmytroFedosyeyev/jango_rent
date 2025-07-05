@@ -58,7 +58,7 @@
             fill: currentColor;
         }
 
-        /* Остальной стиль без изменений... */
+        /* Остальной стиль */
         .container {
             background: white;
             padding: 25px;
@@ -127,6 +127,56 @@
             color: #c0392b;
             font-weight: 600;
         }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+        }
+        .modal-close {
+            cursor: pointer;
+            float: right;
+            font-size: 20px;
+            color: #7f8c8d;
+        }
+        .modal-close:hover {
+            color: #2c3e50;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .invalid-feedback {
+            color: #c0392b;
+            font-size: 12px;
+            display: none;
+        }
+        .was-validated .invalid-feedback {
+            display: block;
+        }
+        .was-validated input:invalid {
+            border-color: #c0392b;
+        }
     </style>
 </head>
 <body>
@@ -140,7 +190,6 @@
         <form method="post" action="{% url 'logout' %}" class="logout-form" title="Выйти из аккаунта">
             {% csrf_token %}
             <button type="submit" class="logout-btn">
-                <!-- SVG иконка двери -->
                 <svg viewBox="0 0 24 24"><path d="M10 17l1.41-1.41L8.83 13H20v-2H8.83l2.58-2.59L10 7l-5 5 5 5zM19 3H5c-1.1 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
                 Выход
             </button>
@@ -152,5 +201,68 @@
         {% block content %}
         {% endblock %}
     </div>
+
+    <script>
+        function openModal(modalId) {
+            var modal = document.getElementById(modalId);
+            modal.style.display = 'flex';
+            console.log('Modal opened:', modalId);
+        }
+
+        function closeModal(modalId) {
+            var modal = document.getElementById(modalId);
+            modal.style.display = 'none';
+            console.log('Modal closed:', modalId);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var payButtons = document.querySelectorAll('.pay-btn');
+            console.log('Pay buttons found:', payButtons.length);
+            payButtons.forEach(function(button) {
+                button.addEventListener('click', function() {
+                    var category = this.getAttribute('data-category');
+                    var modalId = this.getAttribute('data-target').substring(1);
+                    console.log('Clicked category:', category);
+                    document.getElementById(modalId + 'Category').value = category;
+                    document.getElementById(modalId + 'Label').textContent = 'Оплата ' + category;
+                    var form = document.querySelector('#' + modalId + ' form');
+                    form.action = "{% url 'expenses:pay_expense' category='temp' %}".replace('temp', category);
+                    openModal(modalId);
+                });
+            });
+
+            var payAllButtons = document.querySelectorAll('.pay-all-btn');
+            console.log('Pay all buttons found:', payAllButtons.length);
+            payAllButtons.forEach(function(button) {
+                button.addEventListener('click', function() {
+                    var modalId = this.getAttribute('data-target').substring(1);
+                    console.log('Clicked pay all:', modalId);
+                    document.getElementById(modalId + 'Label').textContent = 'Оплатить всё';
+                    document.getElementById(modalId + 'Category').value = 'all'; // Указываем, что это массовая оплата
+                    var form = document.querySelector('#' + modalId + ' form');
+                    form.action = "{% url 'expenses:pay_all_expenses' %}";
+                    openModal(modalId);
+                });
+            });
+
+            var closeButtons = document.querySelectorAll('.modal-close');
+            closeButtons.forEach(function(button) {
+                button.addEventListener('click', function() {
+                    closeModal(this.closest('.modal').id);
+                });
+            });
+
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        form.classList.add('was-validated');
+                    }
+                }, false);
+            });
+        });
+    </script>
 </body>
 </html>
