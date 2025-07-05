@@ -17,6 +17,7 @@ from django.db import transaction
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from .models import MeterReading, Expense
+from .models import RentRate
 
 
 
@@ -35,6 +36,20 @@ def add_expense(request):
             if expense_valid:
                 expense = expense_form.save(commit=False)
                 expense.user = request.user
+
+                if expense.category == 'rent':
+                    # Берём актуальную ставку аренды на дату расхода
+                    rent_rate = RentRate.objects.filter(
+                        user=request.user,
+                        start_date__lte=expense.date
+                    ).order_by('-start_date').first()
+
+                    if rent_rate:
+                        expense.amount = rent_rate.amount
+                    else:
+                        messages.warning(request, 'Не найдена ставка аренды. Добавьте её в RentRate.')
+                        return redirect('expenses:add_expense')
+
                 expense.debt = expense.amount
                 expense.save()
                 logger.debug(f"Saved expense: {expense}")
@@ -394,7 +409,7 @@ def pay_all_expenses(request):
     remaining = amount
     categories = ['rent', 'utilities', 'electricity']
 
-    # === 1. Погашаем текущие расходы ===
+    # 1. Погашаем текущие расходы
     for category in categories:
         expenses = Expense.objects.filter(
             user=user,
@@ -415,7 +430,7 @@ def pay_all_expenses(request):
             expense.save()
             remaining -= to_pay
 
-    # === 2. Закрываем долги прошлых месяцев ===
+    # 2. Закрываем долги за прошлые месяцы
     if remaining > 0:
         past_expenses = Expense.objects.filter(
             user=user,
@@ -426,7 +441,7 @@ def pay_all_expenses(request):
         for expense in past_expenses:
             if remaining <= 0:
                 break
-            to_pay = min(remaining, expense.debt)
+            to_pay = min(expense.debt, remaining)
             expense.debt -= to_pay
             expense.payment_amount += to_pay
             if expense.debt <= 0:
@@ -436,20 +451,16 @@ def pay_all_expenses(request):
             expense.save()
             remaining -= to_pay
 
-    # === 3. Перенос излишка в будущие месяцы ===
+    # 3. Перенос излишков на будущие месяцы (максимум на 24 месяца вперёд)
     month_offset = 1
-    while remaining > 0 and month_offset <= 24:  # максимум 2 года вперёд
-        today = date.today()
-        year = today.year
-        month = today.month + month_offset
-        year += (month - 1) // 12
-        month = ((month - 1) % 12) + 1
-        next_month = date(year, month, 1)
+    while remaining > 0 and month_offset <= 24:
+        next_month = (date.today().replace(day=1) + timedelta(days=32 * month_offset)).replace(day=1)
 
         for category in categories:
             if remaining <= 0:
                 break
 
+            # Пытаемся найти расход
             expense = Expense.objects.filter(
                 user=user,
                 category=category,
@@ -457,8 +468,25 @@ def pay_all_expenses(request):
                 date__month=next_month.month
             ).first()
 
+            if not expense and category == 'rent':
+                # Получаем актуальную ставку аренды
+                rent_rate = RentRate.objects.filter(
+                    user=user,
+                    start_date__lte=next_month
+                ).order_by('-start_date').first()
+
+                if rent_rate:
+                    expense = Expense.objects.create(
+                        user=user,
+                        category='rent',
+                        amount=rent_rate.amount,
+                        debt=rent_rate.amount,
+                        paid=False,
+                        date=next_month
+                    )
+
             if expense:
-                to_pay = min(remaining, expense.debt)
+                to_pay = min(expense.debt, remaining)
                 expense.debt -= to_pay
                 expense.payment_amount += to_pay
                 if expense.debt <= 0:
@@ -468,30 +496,18 @@ def pay_all_expenses(request):
                 expense.save()
                 remaining -= to_pay
             else:
-                # если расхода нет — создаём с отрицательным долгом
-                Expense.objects.create(
-                    user=user,
-                    category=category,
-                    amount=Decimal('0.00'),
-                    debt=-remaining,
-                    payment_amount=Decimal('0.00'),
-                    paid=False,
-                    date=next_month,
-                    payment_date=payment_date
-                )
-                remaining = Decimal('0.00')
-                break
+                # если расходы не найдены и не аренда — не создаём, переносим остаток дальше
+                continue
 
         month_offset += 1
 
-    # === Сохраняем параметры фильтрации в сессии ===
+    # Сохраняем сессию фильтра и редиректим
     if start_date and end_date:
         request.session['filter_start_date'] = start_date
         request.session['filter_end_date'] = end_date
         request.session.modified = True
 
-    # === Уведомление и редирект ===
-    messages.success(request, f"Оплата прошла. Распределено: {amount - remaining} €. Излишек: {remaining} € перенесён.")
+    messages.success(request, f"Оплата прошла. Распределено: {amount - remaining:.2f} €. Остаток: {remaining:.2f} € перенесён.")
     if start_date and end_date:
         return redirect(f"{reverse('expenses:filter_expenses')}?start_date={start_date}&end_date={end_date}")
     return redirect('expenses:home')
