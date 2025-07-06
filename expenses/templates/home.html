@@ -32,9 +32,11 @@
                 </td>
                 <td>{% if rent.paid %}<span class="status status-paid">Оплачено</span>{% else %}<span class="status status-unpaid">Ожидает оплаты</span>{% endif %}</td>
                 <td>
-                    <a href="{% url 'expenses:add_expense' %}?category=rent" class="btn btn-primary btn-sm">Ввести данные</a>
-                    {% if not rent.paid and rent.amount > 0 %}
-                    <button class="btn btn-primary btn-sm pay-btn" data-target="payModal" data-category="rent">Оплатить</button>
+                    {% if rent.amount == 0 %}
+                        <button class="btn btn-primary btn-sm add-expense-btn" data-category="rent">Ввести данные</button>
+                    {% endif %}
+                    {% if rent.amount > 0 and not rent.paid %}
+                        <button class="btn btn-primary btn-sm pay-btn" data-target="payModal" data-category="rent">Оплатить</button>
                     {% endif %}
                 </td>
             </tr>
@@ -51,9 +53,11 @@
                 </td>
                 <td>{% if utilities.paid %}<span class="status status-paid">Оплачено</span>{% else %}<span class="status status-unpaid">Ожидает оплаты</span>{% endif %}</td>
                 <td>
-                    <a href="{% url 'expenses:add_expense' %}?category=utilities" class="btn btn-primary btn-sm">Ввести данные</a>
-                    {% if not utilities.paid and utilities.amount > 0 %}
-                    <button class="btn btn-primary btn-sm pay-btn" data-target="payModal" data-category="utilities">Оплатить</button>
+                    {% if utilities.amount == 0 %}
+                        <button class="btn btn-primary btn-sm add-expense-btn" data-category="utilities">Ввести данные</button>
+                    {% endif %}
+                    {% if utilities.amount > 0 and not utilities.paid %}
+                        <button class="btn btn-primary btn-sm pay-btn" data-target="payModal" data-category="utilities">Оплатить</button>
                     {% endif %}
                 </td>
             </tr>
@@ -70,9 +74,11 @@
                 </td>
                 <td>{% if electricity.paid %}<span class="status status-paid">Оплачено</span>{% else %}<span class="status status-unpaid">Ожидает оплаты</span>{% endif %}</td>
                 <td>
-                    <a href="{% url 'expenses:add_expense' %}?category=electricity" class="btn btn-primary btn-sm">Ввести данные</a>
-                    {% if not electricity.paid and electricity.amount > 0 %}
-                    <button class="btn btn-primary btn-sm pay-btn" data-target="payModal" data-category="electricity">Оплатить</button>
+                    {% if electricity.amount == 0 %}
+                        <button class="btn btn-primary btn-sm add-expense-btn" data-category="electricity">Ввести данные</button>
+                    {% endif %}
+                    {% if electricity.amount > 0 and not electricity.paid %}
+                        <button class="btn btn-primary btn-sm pay-btn" data-target="payModal" data-category="electricity">Оплатить</button>
                     {% endif %}
                 </td>
             </tr>
@@ -112,6 +118,32 @@
                 <div style="display: flex; gap: 10px;">
                     <button type="submit" class="btn btn-primary">Оплатить</button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal('payModal')">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно для ввода данных -->
+    <div id="addExpenseModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+        <div class="modal-content" style="background: white; padding: 20px; border-radius: 8px; width: 300px;">
+            <span class="modal-close" style="float: right; cursor: pointer;">×</span>
+            <h3 id="addExpenseModalLabel">Ввод данных</h3>
+            <form method="post" action="{% url 'expenses:add_expense_modal' %}" class="needs-validation" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="category" id="addModalCategory">
+                <div class="form-group">
+                    <label for="addAmount">Сумма (€)</label>
+                    <input type="number" id="addAmount" name="amount" step="0.01" required>
+                    <div class="invalid-feedback">Пожалуйста, введите сумму.</div>
+                </div>
+                <div class="form-group">
+                    <label for="addDate">Дата</label>
+                    <input type="date" id="addDate" name="date" required>
+                    <div class="invalid-feedback">Пожалуйста, выберите дату.</div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addExpenseModal')">Отмена</button>
                 </div>
             </form>
         </div>
@@ -170,39 +202,44 @@
             {% endif %}
         {% endfor %}
     </div>
+
+    {% if messages %}
+    <div class="alert alert-success" role="alert">
+        {% for message in messages %}
+            {{ message }}
+        {% endfor %}
+    </div>
+    {% endif %}
 </div>
 
-<!-- JavaScript для модального окна -->
+<!-- JavaScript для модальных окон -->
 <script>
-    function openPayAllModal() {
-        const modal = document.getElementById('payModal');
-        const form = modal.querySelector('form');
-        form.action = "{% url 'expenses:pay_all_expenses' %}";
-
-        document.getElementById('payModalCategory').value = '';
-        document.getElementById('payAmount').value = '';
-        document.getElementById('payDate').value = '';
-        modal.style.display = 'flex';
-    }
-
     function closeModal(id) {
         document.getElementById(id).style.display = 'none';
     }
 
+    // Обработка модального окна оплаты
     document.querySelectorAll('.modal-close').forEach(btn => {
         btn.addEventListener('click', () => closeModal('payModal'));
     });
 
     document.querySelectorAll('.pay-all-btn').forEach(btn => {
-        btn.addEventListener('click', openPayAllModal);
+        btn.addEventListener('click', function() {
+            const modal = document.getElementById('payModal');
+            const form = modal.querySelector('form');
+            form.action = "{% url 'expenses:pay_all_expenses' %}";
+            document.getElementById('payModalCategory').value = '';
+            document.getElementById('payAmount').value = '';
+            document.getElementById('payDate').value = '';
+            modal.style.display = 'flex';
+        });
     });
 
     document.querySelectorAll('.pay-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', function() {
             const modal = document.getElementById('payModal');
             const form = modal.querySelector('form');
             const category = btn.getAttribute('data-category');
-
             form.action = "{% url 'expenses:pay_expense' 'REPLACE' %}".replace('REPLACE', category);
             document.getElementById('payModalCategory').value = category;
             document.getElementById('payAmount').value = '';
@@ -217,5 +254,46 @@
             closeModal('payModal');
         }
     });
+
+    // Обработка модального окна ввода данных
+    document.querySelectorAll('.add-expense-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modal = document.getElementById('addExpenseModal');
+            const form = modal.querySelector('form');
+            const category = this.getAttribute('data-category');
+            document.getElementById('addModalCategory').value = category;
+            document.getElementById('addExpenseModalLabel').textContent = 'Ввод данных для ' +
+                (category === 'rent' ? 'Аренды' : category === 'utilities' ? 'Коммунальных' : 'Электричества');
+            document.getElementById('addAmount').value = '';
+            document.getElementById('addDate').value = '';
+            modal.style.display = 'flex';
+        });
+    });
+
+    document.querySelectorAll('.modal-close').forEach(btn => {
+        btn.addEventListener('click', () => closeModal('addExpenseModal'));
+    });
+
+    window.addEventListener('click', (e) => {
+        const modal = document.getElementById('addExpenseModal');
+        if (e.target === modal) {
+            closeModal('addExpenseModal');
+        }
+    });
+
+    // Валидация форм
+    (function() {
+        'use strict';
+        var forms = document.querySelectorAll('.needs-validation');
+        Array.prototype.slice.call(forms).forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
 </script>
 {% endblock %}

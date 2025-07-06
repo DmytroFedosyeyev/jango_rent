@@ -1,4 +1,5 @@
 import logging
+import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from .forms import ExpenseForm, MeterReadingForm, RegisterForm
 from .models import Expense, MeterReading
@@ -9,17 +10,15 @@ from django.http import HttpResponseBadRequest
 from django.urls import reverse
 from .forms import EditSingleReadingForm
 from django.contrib import messages
-from datetime import date, datetime, timedelta
 from calendar import monthrange
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.db.models import Sum
 from django.db import transaction
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
 from .models import MeterReading, Expense
 from .models import RentRate
-
-
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+from datetime import date, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +37,6 @@ def add_expense(request):
                 expense.user = request.user
 
                 if expense.category == 'rent':
-                    # Берём актуальную ставку аренды на дату расхода
                     rent_rate = RentRate.objects.filter(
                         user=request.user,
                         start_date__lte=expense.date
@@ -112,11 +110,29 @@ def home(request):
     utilities_expense = expenses.filter(category='utilities').first()
     electricity_expense = expenses.filter(category='electricity').first()
 
-    rent = rent_expense.amount if rent_expense else 0
-    utilities = utilities_expense.amount if utilities_expense else 0
-    electricity = electricity_expense.amount if electricity_expense else 0
+    rent = {
+        'amount': rent_expense.amount if rent_expense else 0,
+        'date': rent_expense.date if rent_expense else None,
+        'paid': rent_expense.paid if rent_expense else False,
+        'payment_date': rent_expense.payment_date if rent_expense else None,
+        'payment_amount': rent_expense.payment_amount if rent_expense else 0,  # Используем поле из модели
+    }
+    utilities = {
+        'amount': utilities_expense.amount if utilities_expense else 0,
+        'date': utilities_expense.date if utilities_expense else None,
+        'paid': utilities_expense.paid if utilities_expense else False,
+        'payment_date': utilities_expense.payment_date if utilities_expense else None,
+        'payment_amount': utilities_expense.payment_amount if utilities_expense else 0,  # Используем поле из модели
+    }
+    electricity = {
+        'amount': electricity_expense.amount if electricity_expense else 0,
+        'date': electricity_expense.date if electricity_expense else None,
+        'paid': electricity_expense.paid if electricity_expense else False,
+        'payment_date': electricity_expense.payment_date if electricity_expense else None,
+        'payment_amount': electricity_expense.payment_amount if electricity_expense else 0,  # Используем поле из модели
+    }
 
-    total = Decimal(rent) + Decimal(utilities) + Decimal(electricity)
+    total = Decimal(rent['amount']) + Decimal(utilities['amount']) + Decimal(electricity['amount'])
 
     # Долги
     past_expenses = Expense.objects.filter(
@@ -150,27 +166,9 @@ def home(request):
     context = {
         'current_month': today.strftime('%B'),
         'current_year': current_year,
-        'rent': {
-            'amount': rent,
-            'date': rent_expense.date if rent_expense else None,
-            'paid': rent_expense.paid if rent_expense else False,
-            'payment_date': rent_expense.payment_date if rent_expense else None,
-            'payment_amount': rent_expense.amount - rent_expense.debt if rent_expense else 0,
-        },
-        'utilities': {
-            'amount': utilities,
-            'date': utilities_expense.date if utilities_expense else None,
-            'paid': utilities_expense.paid if utilities_expense else False,
-            'payment_date': utilities_expense.payment_date if utilities_expense else None,
-            'payment_amount': utilities_expense.amount - utilities_expense.debt if utilities_expense else 0,
-        },
-        'electricity': {
-            'amount': electricity,
-            'date': electricity_expense.date if electricity_expense else None,
-            'paid': electricity_expense.paid if electricity_expense else False,
-            'payment_date': electricity_expense.payment_date if electricity_expense else None,
-            'payment_amount': electricity_expense.amount - electricity_expense.debt if electricity_expense else 0,
-        },
+        'rent': rent,
+        'utilities': utilities,
+        'electricity': electricity,
         'total': total,
         'debt': {
             'rent': rent_debt,
@@ -388,7 +386,6 @@ def overview(request):
     }
     return render(request, 'overview.html', context)
 
-
 @login_required
 def pay_all_expenses(request):
     if request.method != 'POST':
@@ -512,7 +509,6 @@ def pay_all_expenses(request):
         return redirect(f"{reverse('expenses:filter_expenses')}?start_date={start_date}&end_date={end_date}")
     return redirect('expenses:home')
 
-
 def register(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
@@ -524,7 +520,6 @@ def register(request):
         form = RegisterForm()
     return render(request, 'register.html', {'form': form})
 
-
 from django.shortcuts import render
 
 def welcome(request):
@@ -532,55 +527,87 @@ def welcome(request):
         return redirect('expenses:home')  # если вошел — на домашнюю
     return render(request, 'welcome.html')
 
+@login_required
+@require_POST
+def pay_expense(request, category):
+    if request.method != 'POST':
+        return HttpResponseBadRequest("Некорректный метод запроса")
+
+    amount = request.POST.get('amount')
+    payment_date = request.POST.get('payment_date')
+
+    if not amount or not payment_date:
+        messages.error(request, "Сумма и дата оплаты обязательны.")
+        return redirect('expenses:home')
+
+    try:
+        amount = Decimal(amount)
+        if amount <= 0:
+            raise ValueError("Сумма оплаты должна быть положительной.")
+        payment_date = datetime.datetime.strptime(payment_date, '%Y-%m-%d').date()
+    except ValueError:
+        messages.error(request, "Неверный формат суммы или даты оплаты.")
+        return redirect('expenses:home')
+
+    # Период фильтра
+    start_date = request.session.get('filter_start_date')
+    end_date = request.session.get('filter_end_date')
+    logger.debug(f"Filter dates: start_date={start_date}, end_date={end_date}")
+
+    # Ищем существующую запись
+    expenses = Expense.objects.filter(user=request.user, category=category)
+    if start_date and end_date:
+        expenses = expenses.filter(date__range=[start_date, end_date])
+    expense = expenses.first()
+    logger.debug(f"Found expense: {expense}")
+
+    if not expense or expense.amount <= 0:
+        messages.error(request, "Сначала введите сумму расхода через 'Ввести данные'.")
+        return redirect('expenses:home')
+
+    # Обновляем запись
+    paid_part = min(expense.debt, amount)
+    logger.debug(f"Before update: debt={expense.debt}, payment_amount={expense.payment_amount}, paid={expense.paid}")
+    expense.debt -= paid_part
+    expense.payment_amount += paid_part
+    if expense.debt <= 0:
+        expense.debt = Decimal('0.00')
+        expense.paid = True
+    expense.payment_date = payment_date
+    expense.save()
+    logger.debug(f"After update: debt={expense.debt}, payment_amount={expense.payment_amount}, paid={expense.paid}, payment_date={expense.payment_date}")
+
+    messages.success(request, f"Оплата для {category} на сумму {paid_part} € обработана.")
+    return redirect('expenses:home')  # Всегда редиректим на главную
 
 @login_required
-def pay_expense(request, category):
-    if request.method == 'POST':
-        amount = request.POST.get('amount')
-        payment_date = request.POST.get('payment_date')
+@require_POST
+def add_expense_modal(request):
+    category = request.POST.get('category')
+    amount = request.POST.get('amount')
+    date_str = request.POST.get('date')
 
-        if not amount or not payment_date:
-            return HttpResponseBadRequest("Некорректная сумма или дата оплаты")
+    if not category or not amount or not date_str:
+        messages.error(request, "Все поля обязательны для заполнения.")
+        return redirect('expenses:home')
 
-        try:
-            amount = Decimal(amount)
-            if amount <= 0:
-                raise ValueError
-        except:
-            return HttpResponseBadRequest("Некорректная сумма")
+    try:
+        amount = Decimal(amount)
+        if amount <= 0:
+            raise ValueError("Сумма должна быть положительной.")
+        date_obj = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        messages.error(request, "Неверный формат суммы или даты.")
+        return redirect('expenses:home')
 
-        # Период фильтра
-        start_date = request.session.get('filter_start_date')
-        end_date = request.session.get('filter_end_date')
+    Expense.objects.create(
+        user=request.user,
+        category=category,
+        amount=amount,
+        debt=amount,
+        date=date_obj,
+        paid=False
+    )
 
-        expenses = Expense.objects.filter(user=request.user, category=category)
-        if start_date and end_date:
-            expenses = expenses.filter(date__range=[start_date, end_date])
-        expense = expenses.first()
-
-        if expense:
-            paid_part = min(expense.debt, amount)
-            expense.debt -= paid_part
-            if expense.debt <= 0:
-                expense.debt = Decimal('0.00')
-                expense.paid = True
-            expense.payment_date = payment_date
-            expense.save()
-        else:
-            Expense.objects.create(
-                user=request.user,
-                category=category,
-                amount=amount,
-                debt=Decimal('0.00'),
-                payment_date=payment_date,
-                date=payment_date,
-                paid=True
-            )
-
-        # Возврат на нужную страницу
-        if start_date and end_date:
-            return redirect(f"{reverse('expenses:filter_expenses')}?start_date={start_date}&end_date={end_date}")
-        else:
-            return redirect('expenses:home')
-
-    return HttpResponseBadRequest("Некорректный метод запроса")
+    messages.success(request, f"Расход ({category}) на сумму {amount} € добавлен.")
+    return redirect('expenses:home')
