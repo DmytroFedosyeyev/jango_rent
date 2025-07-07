@@ -208,11 +208,9 @@ def filter_expenses(request):
         try:
             start_month = datetime.datetime.strptime(start_date, '%Y-%m').replace(day=1)
             end_month = datetime.datetime.strptime(end_date, '%Y-%m').replace(day=1)
-            # превращаем end_month в последний день месяца
             last_day = calendar.monthrange(end_month.year, end_month.month)[1]
             end_month = end_month.replace(day=last_day)
 
-            # вызываем обработку категорий — данные сохранятся в MonthlyUsage
             process_category('cold_water', request.user)
             process_category('hot_water', request.user)
             process_category('electricity', request.user)
@@ -225,9 +223,20 @@ def filter_expenses(request):
             start_month = None
             end_month = None
     else:
-        start_month = datetime.datetime.strptime(request.session.get('filter_start_date', '2025-07-01'), '%Y-%m-%d').date() if request.session.get('filter_start_date') else None
-        end_month = datetime.datetime.strptime(request.session.get('filter_end_date', '2025-07-31'), '%Y-%m-%d').date() if request.session.get('filter_end_date') else None
+        try:
+            start_month = datetime.datetime.strptime(request.session.get('filter_start_date', '2025-07-01'), '%Y-%m-%d').date()
+            end_month = datetime.datetime.strptime(request.session.get('filter_end_date', '2025-07-31'), '%Y-%m-%d').date()
+        except Exception:
+            start_month = None
+            end_month = None
         logger.debug(f"Loaded from session: start_date={start_month}, end_date={end_month}")
+
+    # ✅ Защита от None: если даты не установлены — задаём текущий месяц
+    if not start_month:
+        start_month = date.today().replace(day=1)
+    if not end_month:
+        _, last_day = calendar.monthrange(start_month.year, start_month.month)
+        end_month = date(start_month.year, start_month.month, last_day)
 
     # Список месяцев для кнопок
     month_names = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
