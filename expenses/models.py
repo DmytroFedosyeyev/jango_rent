@@ -49,3 +49,24 @@ class RentRate(models.Model):
 
     def __str__(self):
         return f"{self.amount} € с {self.start_date}"
+
+
+class MonthlyUsage(models.Model):
+    CATEGORY_CHOICES = [
+        ('cold_water', 'Холодная вода'),
+        ('hot_water', 'Горячая вода'),
+        ('electricity', 'Электричество'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    year = models.IntegerField()
+    month = models.IntegerField()
+    usage = models.FloatField()
+
+    class Meta:
+        unique_together = ('user', 'category', 'year', 'month')
+        ordering = ['year', 'month']
+
+    def __str__(self):
+        return f'{self.user.username} — {self.category} {self.month}/{self.year}: {self.usage}'

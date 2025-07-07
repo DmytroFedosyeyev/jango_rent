@@ -1,5 +1,6 @@
 import logging
 import datetime
+import calendar
 from django.shortcuts import render, redirect, get_object_or_404
 from .forms import ExpenseForm, MeterReadingForm, RegisterForm
 from .models import Expense, MeterReading
@@ -19,6 +20,8 @@ from .models import RentRate
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from datetime import date, timedelta
+from expenses.utils import process_category
+from expenses.models import MonthlyUsage
 
 logger = logging.getLogger(__name__)
 
@@ -184,71 +187,158 @@ def home(request):
 def filter_expenses(request):
     logger.debug(f"Session before: {request.session.items()}")
 
+    # Выбор месяца
+    month = request.GET.get('month')
+    if month:
+        try:
+            month_date = datetime.datetime.strptime(month, '%Y-%m-%d').date()
+            current_month = month_date.replace(day=1)
+            request.session['selected_month'] = current_month.strftime('%Y-%m-%d')
+            request.session.modified = True
+        except ValueError:
+            current_month = date.today().replace(day=1)
+    else:
+        current_month = datetime.datetime.strptime(request.session.get('selected_month', date.today().strftime('%Y-%m-%d')), '%Y-%m-%d').date()
+    logger.debug(f"Selected month: {current_month}")
+
+    # Фильтр по периоду
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
-
     if start_date and end_date:
-        request.session['filter_start_date'] = start_date
-        request.session['filter_end_date'] = end_date
-        request.session.modified = True
-        logger.debug(f"Saved to session: start_date={start_date}, end_date={end_date}")
+        try:
+            start_month = datetime.datetime.strptime(start_date, '%Y-%m').replace(day=1)
+            end_month = datetime.datetime.strptime(end_date, '%Y-%m').replace(day=1)
+            # превращаем end_month в последний день месяца
+            last_day = calendar.monthrange(end_month.year, end_month.month)[1]
+            end_month = end_month.replace(day=last_day)
+
+            # вызываем обработку категорий — данные сохранятся в MonthlyUsage
+            process_category('cold_water', request.user)
+            process_category('hot_water', request.user)
+            process_category('electricity', request.user)
+
+            request.session['filter_start_date'] = start_month.strftime('%Y-%m-%d')
+            request.session['filter_end_date'] = end_month.strftime('%Y-%m-%d')
+            request.session.modified = True
+            logger.debug(f"Saved to session: start_date={start_month}, end_date={end_month}")
+        except ValueError:
+            start_month = None
+            end_month = None
     else:
-        start_date = request.session.get('filter_start_date')
-        end_date = request.session.get('filter_end_date')
-        logger.debug(f"Loaded from session: start_date={start_date}, end_date={end_date}")
+        start_month = datetime.datetime.strptime(request.session.get('filter_start_date', '2025-07-01'), '%Y-%m-%d').date() if request.session.get('filter_start_date') else None
+        end_month = datetime.datetime.strptime(request.session.get('filter_end_date', '2025-07-31'), '%Y-%m-%d').date() if request.session.get('filter_end_date') else None
+        logger.debug(f"Loaded from session: start_date={start_month}, end_date={end_month}")
 
-    expenses = Expense.objects.filter(user=request.user)
+    # Список месяцев для кнопок
+    month_names = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
+    months = [datetime.date(2025, m, 1) for m in range(1, 13)]
+    month_data = list(zip(months, month_names))
 
-    if start_date and end_date:
-        expenses = expenses.filter(date__range=[start_date, end_date])
+    # Данные для текущего месяца
+    expenses = Expense.objects.filter(user=request.user, date__year=current_month.year, date__month=current_month.month)
+    meter_readings = MeterReading.objects.filter(user=request.user, date__year=current_month.year, date__month=current_month.month)
 
-    rent_expense = expenses.filter(category='rent').first()
-    utilities_expense = expenses.filter(category='utilities').first()
-    electricity_expense = expenses.filter(category='electricity').first()
+    rent_expenses = expenses.filter(category='rent')
+    utilities_expenses = expenses.filter(category='utilities')
+    electricity_expenses = expenses.filter(category='electricity')
 
     rent = {
-        'amount': rent_expense.amount if rent_expense else 0,
-        'debt': rent_expense.debt if rent_expense else 0,
-        'date': rent_expense.date if rent_expense else None,
-        'paid': rent_expense.paid if rent_expense else False,
-        'payment_date': rent_expense.payment_date if rent_expense else None,
-        'payment_amount': rent_expense.payment_amount if rent_expense else 0,
+        'amount': rent_expenses.aggregate(total=Sum('amount'))['total'] or 0,
+        'debt': rent_expenses.aggregate(total=Sum('debt'))['total'] or 0,
+        'payment_amount': rent_expenses.aggregate(total=Sum('payment_amount'))['total'] or 0,
+        'paid': all(e.paid for e in rent_expenses) if rent_expenses.exists() else False,
+        'payment_date': max((e.payment_date for e in rent_expenses if e.payment_date), default=None),
     }
     utilities = {
-        'amount': utilities_expense.amount if utilities_expense else 0,
-        'debt': utilities_expense.debt if utilities_expense else 0,
-        'date': utilities_expense.date if utilities_expense else None,
-        'paid': utilities_expense.paid if utilities_expense else False,
-        'payment_date': utilities_expense.payment_date if utilities_expense else None,
-        'payment_amount': utilities_expense.payment_amount if utilities_expense else 0,
+        'amount': utilities_expenses.aggregate(total=Sum('amount'))['total'] or 0,
+        'debt': utilities_expenses.aggregate(total=Sum('debt'))['total'] or 0,
+        'payment_amount': utilities_expenses.aggregate(total=Sum('payment_amount'))['total'] or 0,
+        'paid': all(e.paid for e in utilities_expenses) if utilities_expenses.exists() else False,
+        'payment_date': max((e.payment_date for e in utilities_expenses if e.payment_date), default=None),
     }
     electricity = {
-        'amount': electricity_expense.amount if electricity_expense else 0,
-        'debt': electricity_expense.debt if electricity_expense else 0,
-        'date': electricity_expense.date if electricity_expense else None,
-        'paid': electricity_expense.paid if electricity_expense else False,
-        'payment_date': electricity_expense.payment_date if electricity_expense else None,
-        'payment_amount': electricity_expense.payment_amount if electricity_expense else 0,
+        'amount': electricity_expenses.aggregate(total=Sum('amount'))['total'] or 0,
+        'debt': electricity_expenses.aggregate(total=Sum('debt'))['total'] or 0,
+        'payment_amount': electricity_expenses.aggregate(total=Sum('payment_amount'))['total'] or 0,
+        'paid': all(e.paid for e in electricity_expenses) if electricity_expenses.exists() else False,
+        'payment_date': max((e.payment_date for e in electricity_expenses if e.payment_date), default=None),
     }
 
     total = Decimal(rent['amount']) + Decimal(utilities['amount']) + Decimal(electricity['amount'])
     total_debt = Decimal(rent['debt']) + Decimal(utilities['debt']) + Decimal(electricity['debt'])
+    total_payment = Decimal(rent['payment_amount']) + Decimal(utilities['payment_amount']) + Decimal(electricity['payment_amount'])
 
-    # Получаем показания счетчиков за выбранный период
-    meter_readings = MeterReading.objects.filter(
-        user=request.user,
-        date__range=[start_date, end_date]
-    ).order_by('date', 'category')
+    # Данные по расходам за период
+    period_expenses = Expense.objects.filter(user=request.user)
+    if start_month and end_month:
+        period_expenses = period_expenses.filter(date__range=[start_month, end_month])
+
+    period_rent = period_expenses.filter(category='rent').aggregate(total_amount=Sum('amount'), total_debt=Sum('debt'), total_payment=Sum('payment_amount'))
+    period_utilities = period_expenses.filter(category='utilities').aggregate(total_amount=Sum('amount'), total_debt=Sum('debt'), total_payment=Sum('payment_amount'))
+    period_electricity = period_expenses.filter(category='electricity').aggregate(total_amount=Sum('amount'), total_debt=Sum('debt'), total_payment=Sum('payment_amount'))
+
+    period_total = {
+        'rent': {
+            'amount': period_rent['total_amount'] or 0,
+            'debt': period_rent['total_debt'] or 0,
+            'payment_amount': period_rent['total_payment'] or 0,
+        },
+        'utilities': {
+            'amount': period_utilities['total_amount'] or 0,
+            'debt': period_utilities['total_debt'] or 0,
+            'payment_amount': period_utilities['total_payment'] or 0,
+        },
+        'electricity': {
+            'amount': period_electricity['total_amount'] or 0,
+            'debt': period_electricity['total_debt'] or 0,
+            'payment_amount': period_electricity['total_payment'] or 0,
+        },
+        'total': sum([period_rent['total_amount'] or 0, period_utilities['total_amount'] or 0, period_electricity['total_amount'] or 0]),
+        'total_debt': sum([period_rent['total_debt'] or 0, period_utilities['total_debt'] or 0, period_electricity['total_debt'] or 0]),
+        'total_payment': sum([period_rent['total_payment'] or 0, period_utilities['total_payment'] or 0, period_electricity['total_payment'] or 0]),
+    }
+
+    # Расчёт расхода по счётчикам из MonthlyUsage
+    def compute_usage_stats(category, user, start_date, end_date):
+        usages = MonthlyUsage.objects.filter(
+            user=user,
+            category=category,
+            year__gte=start_date.year,
+            month__gte=start_date.month,
+            year__lte=end_date.year,
+            month__lte=end_date.month
+        )
+        usage_values = [u.usage for u in usages]
+        if not usage_values:
+            return {'total': 0, 'min': 0, 'max': 0, 'avg': 0}
+        total = round(sum(usage_values), 2)
+        return {
+            'total': total,
+            'min': round(min(usage_values), 2),
+            'max': round(max(usage_values), 2),
+            'avg': round(total / len(usage_values), 2)
+        }
+
+    meter_usage = {
+        'electricity': compute_usage_stats('electricity', request.user, start_month, end_month),
+        'cold_water': compute_usage_stats('cold_water', request.user, start_month, end_month),
+        'hot_water': compute_usage_stats('hot_water', request.user, start_month, end_month),
+    }
 
     context = {
-        'start_date': start_date,
-        'end_date': end_date,
+        'current_month': current_month.strftime('%B %Y'),
         'rent': rent,
         'utilities': utilities,
         'electricity': electricity,
         'total': total,
         'total_debt': total_debt,
+        'total_payment': total_payment,
         'meter_readings': meter_readings,
+        'start_month': start_month,
+        'end_month': end_month,
+        'period_total': period_total,
+        'meter_usage': meter_usage,
+        'month_data': month_data,
     }
 
     logger.debug(f"Session after: {request.session.items()}")

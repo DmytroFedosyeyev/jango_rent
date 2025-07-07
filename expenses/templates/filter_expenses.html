@@ -11,31 +11,26 @@
         {% endfor %}
     </div>
     {% endif %}
-    <h2>Выборка расходов</h2>
-    <form method="get" style="margin-bottom: 20px;">
-        <div style="display: flex; gap: 15px; align-items: flex-end;">
-            <div>
-                <label>С даты:</label><br>
-                <input type="date" name="start_date" value="{{ start_date|default_if_none:'' }}" style="padding: 5px;">
-            </div>
-            <div>
-                <label>По дату:</label><br>
-                <input type="date" name="end_date" value="{{ end_date|default_if_none:'' }}" style="padding: 5px;">
-            </div>
-            <div>
-                <button type="submit" class="btn btn-primary">Фильтровать</button>
-            </div>
-        </div>
-    </form>
 
-    {% if start_date and end_date %}
-    <h3 style="color: #2c3e50; margin-bottom: 15px;">Расходы за период с {{ start_date }} по {{ end_date }}</h3>
+    <h2>Выборка расходов</h2>
+
+    <!-- Кнопки месяцев -->
+    <div class="month-buttons" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+        {% for month_date, month_name in month_data %}
+            <a href="?month={{ month_date|date:'Y-m-d' }}" class="btn btn-secondary month-btn" style="padding: 10px 20px; border-radius: 5px;">
+                {{ month_name }}
+            </a>
+        {% endfor %}
+    </div>
+
+    <!-- Таблица расходов за текущий месяц -->
+    <h3 style="color: #2c3e50; margin-bottom: 15px;">Расходы за {{ current_month }}</h3>
     <table class="table">
         <thead>
             <tr>
                 <th>Категория</th>
                 <th>Сумма (€)</th>
-                <th>Долг (€)</th>
+                <th>{% if rent.debt < 0 or utilities.debt < 0 or electricity.debt < 0 %}Переплата{% else %}Долг{% endif %} (€)</th>
                 <th>Оплачено (€)</th>
                 <th>Дата оплаты</th>
                 <th>Действия</th>
@@ -45,11 +40,11 @@
             <tr>
                 <td>Аренда</td>
                 <td>{{ rent.amount|floatformat:2 }}</td>
-                <td>{{ rent.debt|floatformat:2 }}</td>
+                <td style="color: {% if rent.debt < 0 %}green{% elif rent.debt == 0 %}green{% else %}red{% endif %}">{{ rent.debt|floatformat:2 }}</td>
                 <td>{{ rent.payment_amount|floatformat:2 }}</td>
                 <td>{% if rent.payment_date %}{{ rent.payment_date|date:"d.m.Y" }}{% else %}-{% endif %}</td>
                 <td>
-                    {% if not rent.paid %}
+                    {% if not rent.paid and rent.amount > 0 %}
                     <button class="btn btn-primary btn-small pay-btn" data-category="rent">Оплатить</button>
                     {% endif %}
                 </td>
@@ -57,7 +52,7 @@
             <tr>
                 <td>Коммунальные</td>
                 <td>{{ utilities.amount|floatformat:2 }}</td>
-                <td>{{ utilities.debt|floatformat:2 }}</td>
+                <td style="color: {% if utilities.debt < 0 %}green{% elif utilities.debt == 0 %}green{% else %}red{% endif %}">{{ utilities.debt|floatformat:2 }}</td>
                 <td>{{ utilities.payment_amount|floatformat:2 }}</td>
                 <td>{% if utilities.payment_date %}{{ utilities.payment_date|date:"d.m.Y" }}{% else %}-{% endif %}</td>
                 <td>
@@ -69,7 +64,7 @@
             <tr>
                 <td>Электричество</td>
                 <td>{{ electricity.amount|floatformat:2 }}</td>
-                <td>{{ electricity.debt|floatformat:2 }}</td>
+                <td style="color: {% if electricity.debt < 0 %}green{% elif electricity.debt == 0 %}green{% else %}red{% endif %}">{{ electricity.debt|floatformat:2 }}</td>
                 <td>{{ electricity.payment_amount|floatformat:2 }}</td>
                 <td>{% if electricity.payment_date %}{{ electricity.payment_date|date:"d.m.Y" }}{% else %}-{% endif %}</td>
                 <td>
@@ -81,8 +76,8 @@
             <tr class="total-row">
                 <td><strong>Итого</strong></td>
                 <td><strong>{{ total|floatformat:2 }}</strong></td>
-                <td><strong>{{ total_debt|floatformat:2 }}</strong></td>
-                <td></td>
+                <td style="color: {% if total_debt < 0 %}green{% elif total_debt == 0 %}green{% else %}red{% endif %}"><strong>{{ total_debt|floatformat:2 }}</strong></td>
+                <td><strong>{{ total_payment|floatformat:2 }}</strong></td>
                 <td></td>
                 <td>
                     {% if not rent.paid or not utilities.paid or not electricity.paid %}
@@ -93,6 +88,138 @@
         </tbody>
     </table>
 
+    <!-- Таблица показаний счетчиков за текущий месяц -->
+    <h3 style="color: #2c3e50; margin-top: 40px;">Показания счетчиков за {{ current_month }}</h3>
+    {% if meter_readings %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Дата</th>
+                <th>Категория</th>
+                <th>Значение</th>
+                <th>Действие</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reading in meter_readings %}
+            <tr>
+                <td>{{ reading.date|date:"d.m.Y" }}</td>
+                <td>
+                    {% if reading.category == 'electricity' %}Электричество
+                    {% elif reading.category == 'cold_water' %}Холодная вода
+                    {% elif reading.category == 'hot_water' %}Горячая вода
+                    {% else %}{{ reading.category }}{% endif %}
+                </td>
+                <td>{{ reading.value|floatformat:2 }}</td>
+                <td>
+                    <a href="{% url 'expenses:edit_meter_reading' reading.pk %}" class="btn btn-sm btn-warning">Редактировать</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>Показания счетчиков за текущий месяц отсутствуют.</p>
+    {% endif %}
+
+    <!-- Фильтр по периоду -->
+    <h3 style="color: #2c3e50; margin-top: 40px;">Выборка расходов за период:</h3>
+    <form method="get" style="margin-bottom: 20px;">
+        <div style="display: flex; gap: 15px; align-items: flex-end;">
+            <div>
+                <label>С месяца:</label><br>
+                <input type="month" name="start_date" value="{% if start_month %}{{ start_month|date:'Y-m' }}{% endif %}" style="padding: 5px;">
+            </div>
+            <div>
+                <label>По месяц:</label><br>
+                <input type="month" name="end_date" value="{% if end_month %}{{ end_month|date:'Y-m' }}{% endif %}" style="padding: 5px;">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Фильтровать</button>
+            </div>
+        </div>
+    </form>
+
+    {% if start_month and end_month %}
+    <h3 style="color: #2c3e50; margin-bottom: 15px;">
+        Расходы за период с {{ start_month|date:"F Y" }} по {{ end_month|date:"F Y" }}
+    </h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Категория</th>
+                <th>Сумма (€)</th>
+                <th>{% if period_total.rent.debt < 0 or period_total.utilities.debt < 0 or period_total.electricity.debt < 0 %}Переплата{% else %}Долг{% endif %} (€)</th>
+                <th>Оплачено (€)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Аренда</td>
+                <td>{{ period_total.rent.amount|floatformat:2 }}</td>
+                <td style="color: {% if period_total.rent.debt < 0 %}green{% elif period_total.rent.debt == 0 %}green{% else %}red{% endif %}">{{ period_total.rent.debt|floatformat:2 }}</td>
+                <td>{{ period_total.rent.payment_amount|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Коммунальные</td>
+                <td>{{ period_total.utilities.amount|floatformat:2 }}</td>
+                <td style="color: {% if period_total.utilities.debt < 0 %}green{% elif period_total.utilities.debt == 0 %}green{% else %}red{% endif %}">{{ period_total.utilities.debt|floatformat:2 }}</td>
+                <td>{{ period_total.utilities.payment_amount|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Электричество</td>
+                <td>{{ period_total.electricity.amount|floatformat:2 }}</td>
+                <td style="color: {% if period_total.electricity.debt < 0 %}green{% elif period_total.electricity.debt == 0 %}green{% else %}red{% endif %}">{{ period_total.electricity.debt|floatformat:2 }}</td>
+                <td>{{ period_total.electricity.payment_amount|floatformat:2 }}</td>
+            </tr>
+            <tr class="total-row">
+                <td><strong>Итого</strong></td>
+                <td><strong>{{ period_total.total|floatformat:2 }}</strong></td>
+                <td style="color: {% if period_total.total_debt < 0 %}green{% elif period_total.total_debt == 0 %}green{% else %}red{% endif %}"><strong>{{ period_total.total_debt|floatformat:2 }}</strong></td>
+                <td><strong>{{ period_total.total_payment|floatformat:2 }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Показания расхода воды и электричества за период -->
+    <h3 style="color: #2c3e50; margin-top: 40px;">Показания расхода воды и электричества за период</h3>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Категория</th>
+                <th>Суммарный расход</th>
+                <th>Минимальный расход</th>
+                <th>Максимальный расход</th>
+                <th>Средний расход</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Электричество</td>
+                <td>{{ meter_usage.electricity.total|floatformat:2 }}</td>
+                <td>{{ meter_usage.electricity.min|floatformat:2 }}</td>
+                <td>{{ meter_usage.electricity.max|floatformat:2 }}</td>
+                <td>{{ meter_usage.electricity.avg|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Холодная вода</td>
+                <td>{{ meter_usage.cold_water.total|floatformat:2 }}</td>
+                <td>{{ meter_usage.cold_water.min|floatformat:2 }}</td>
+                <td>{{ meter_usage.cold_water.max|floatformat:2 }}</td>
+                <td>{{ meter_usage.cold_water.avg|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Горячая вода</td>
+                <td>{{ meter_usage.hot_water.total|floatformat:2 }}</td>
+                <td>{{ meter_usage.hot_water.min|floatformat:2 }}</td>
+                <td>{{ meter_usage.hot_water.max|floatformat:2 }}</td>
+                <td>{{ meter_usage.hot_water.avg|floatformat:2 }}</td>
+            </tr>
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Модальные окна -->
     <div id="payModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center;">
         <div class="modal-content" style="background:white; padding:20px; border-radius:8px; width:300px;">
             <span class="modal-close" style="float:right; cursor:pointer;">×</span>
@@ -152,42 +279,5 @@
             });
         });
     </script>
-
-    <h3 style="color: #2c3e50; margin-top: 40px;">Показания счетчиков</h3>
-    {% if meter_readings %}
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Дата</th>
-                <th>Категория</th>
-                <th>Значение</th>
-                <th>Действие</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for reading in meter_readings %}
-            <tr>
-                <td>{{ reading.date|date:"d.m.Y" }}</td>
-                <td>
-                    {% if reading.category == 'electricity' %}Электричество
-                    {% elif reading.category == 'cold_water' %}Холодная вода
-                    {% elif reading.category == 'hot_water' %}Горячая вода
-                    {% else %}{{ reading.category }}{% endif %}
-                </td>
-                <td>{{ reading.value }}</td>
-                <td>
-                    <a href="{% url 'expenses:edit_meter_reading' reading.pk %}" class="btn btn-sm btn-warning">Редактировать</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-        <p>Показания счетчиков за выбранный период отсутствуют.</p>
-    {% endif %}
-
-    {% else %}
-    <p>Выберите период для отображения расходов.</p>
-    {% endif %}
 </div>
 {% endblock %}
