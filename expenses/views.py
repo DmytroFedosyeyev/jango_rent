@@ -162,8 +162,8 @@ def home(request):
         months.append({
             'name': ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'][month-1],
             'status': status,
-            'start_date': start_date.strftime('%Y-%m-%d'),
-            'end_date': end_date.strftime('%Y-%m-%d'),
+            'start_date':  start_date,
+            'end_date': end_date,
         })
 
     context = {
@@ -710,3 +710,41 @@ def add_expense_modal(request):
 
     messages.success(request, f"Расход ({category}) на сумму {amount} € добавлен.")
     return redirect('expenses:home')
+
+
+@login_required
+def monthly_expenses(request, year, month):
+    user = request.user
+    month_start = date(year, month, 1)
+    _, last_day = calendar.monthrange(year, month)
+    month_end = date(year, month, last_day)
+
+    # Расходы
+    expenses = Expense.objects.filter(user=user, date__range=[month_start, month_end])
+    rent = expenses.filter(category='rent').first()
+    utilities = expenses.filter(category='utilities').first()
+    electricity = expenses.filter(category='electricity').first()
+
+    # Показания счётчиков
+    readings = MeterReading.objects.filter(user=user, date__year=year, date__month=month)
+    usage = {}
+    for cat in ['electricity', 'cold_water', 'hot_water']:
+        try:
+            curr = readings.filter(category=cat).latest('date')
+            prev = MeterReading.objects.filter(user=user, category=cat, date__lt=curr.date).latest('date')
+            usage[cat] = round(curr.value - prev.value, 2)
+        except MeterReading.DoesNotExist:
+            usage[cat] = 0
+
+    context = {
+        'year': year,
+        'month': month,
+        'rent': rent,
+        'utilities': utilities,
+        'electricity': electricity,
+        'readings': readings,
+        'usage': usage,
+        'month_name': ['Январь','Февраль','Март','Апрель','Май','Июнь',
+                       'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'][month-1],
+    }
+    return render(request, 'monthly_expenses.html', context)

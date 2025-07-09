@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Расходы за {{ month_name }} {{ year }}{% endblock %}
+
+{% block content %}
+<h2>Расходы за {{ month_name }} {{ year }}</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Категория</th>
+            <th>Сумма (€)</th>
+            <th>Оплачено (€)</th>
+            <th>Дата оплаты</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Аренда</td>
+            <td>{{ rent.amount|default:"0.00" }}</td>
+            <td>{{ rent.payment_amount|default:"0.00" }}</td>
+            <td>{{ rent.payment_date|date:"d.m.Y"|default:"-" }}</td>
+        </tr>
+        <tr>
+            <td>Коммунальные</td>
+            <td>{{ utilities.amount|default:"0.00" }}</td>
+            <td>{{ utilities.payment_amount|default:"0.00" }}</td>
+            <td>{{ utilities.payment_date|date:"d.m.Y"|default:"-" }}</td>
+        </tr>
+        <tr>
+            <td>Электричество</td>
+            <td>{{ electricity.amount|default:"0.00" }}</td>
+            <td>{{ electricity.payment_amount|default:"0.00" }}</td>
+            <td>{{ electricity.payment_date|date:"d.m.Y"|default:"-" }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>Потребление воды и электричества</h3>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Категория</th>
+            <th>Расход</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Электричество</td>
+            <td>{{ usage.electricity }} кВт·ч</td>
+        </tr>
+        <tr>
+            <td>Холодная вода</td>
+            <td>{{ usage.cold_water }} м³</td>
+        </tr>
+        <tr>
+            <td>Горячая вода</td>
+            <td>{{ usage.hot_water }} м³</td>
+        </tr>
+    </tbody>
+</table>
+{% endblock %}

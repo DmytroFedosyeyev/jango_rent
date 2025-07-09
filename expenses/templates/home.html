@@ -190,7 +190,7 @@
             {% endif %}
             <div class="month-box month-{{ month.status }}">
                 {% if month.status != 'future' %}
-                    <a href="{% url 'expenses:filter_expenses' %}?start_date={{ month.start_date }}&end_date={{ month.end_date }}" class="month-link">
+                    <a href="{% url 'expenses:monthly_expenses' current_year month.start_date|date:"n" %}" class="month-link">
                         {{ month.name }}
                     </a>
                 {% else %}
