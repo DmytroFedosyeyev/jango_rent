@@ -22,6 +22,9 @@
             </a>
         {% endfor %}
     </div>
+    <a href="{% url 'expenses:export_to_pdf' %}?start_date={{ start_date }}&end_date={{ end_date }}" class="btn btn-outline-secondary" target="_blank">
+        📄 Экспорт в PDF
+    </a>
 
     <!-- Таблица расходов за текущий месяц -->
     <h3 style="color: #2c3e50; margin-bottom: 15px;">Расходы за {{ current_month }}</h3>

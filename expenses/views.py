@@ -1,19 +1,18 @@
 import logging
 import datetime
 import calendar
+import os
+import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from .forms import ExpenseForm, MeterReadingForm, RegisterForm
-from .models import Expense, MeterReading
 from django.contrib.auth.decorators import login_required
-from datetime import date
-from django.db.models import Sum
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, HttpResponse
 from django.urls import reverse
 from .forms import EditSingleReadingForm
 from django.contrib import messages
 from calendar import monthrange
 from decimal import Decimal, InvalidOperation
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.db import transaction
 from .models import MeterReading, Expense
 from .models import RentRate
@@ -22,6 +21,18 @@ from django.views.decorators.csrf import csrf_exempt
 from datetime import date, timedelta
 from expenses.utils import process_category
 from expenses.models import MonthlyUsage
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from django.conf import settings
+from reportlab.rl_config import TTFSearchPath
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.units import cm
+
 
 logger = logging.getLogger(__name__)
 
@@ -748,3 +759,79 @@ def monthly_expenses(request, year, month):
                        'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'][month-1],
     }
     return render(request, 'monthly_expenses.html', context)
+
+
+@login_required
+def export_to_pdf(request):
+    user = request.user
+    year = request.GET.get('year')
+    month = request.GET.get('month')
+
+    if not (year and month):
+        return HttpResponse("Нужно передать year и month", status=400)
+
+    try:
+        year = int(year)
+        month = int(month)
+        month_start = datetime.date(year, month, 1)
+        _, last_day = calendar.monthrange(year, month)
+        month_end = datetime.date(year, month, last_day)
+    except Exception:
+        return HttpResponse("Некорректные year или month", status=400)
+
+    expenses = Expense.objects.filter(user=user, date__range=[month_start, month_end])
+
+    # Получаем usage по категориям за месяц
+    usage_records = MonthlyUsage.objects.filter(user=user, year=year, month=month)
+    usage_dict = {rec.category: rec.usage for rec in usage_records}
+
+    font_path = os.path.join(settings.BASE_DIR, 'static', 'fonts', 'DejaVuSans.ttf')
+    pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="report_{year}_{month}.pdf"'
+
+    p = canvas.Canvas(response, pagesize=A4)
+    width, height = A4
+
+    p.setFont("DejaVuSans", 14)
+    p.drawCentredString(width / 2, height - 2 * cm, f"Отчёт за {month_start.strftime('%B %Y')}")
+
+    y = height - 3 * cm
+    p.setFont("DejaVuSans", 12)
+    p.drawString(2 * cm, y, "Расходы:")
+    y -= 1 * cm
+
+    p.setFont("DejaVuSans", 10)
+    p.drawString(2 * cm, y, "Категория")
+    p.drawString(7 * cm, y, "Сумма")
+    p.drawString(10 * cm, y, "Оплачено")
+    p.drawString(14 * cm, y, "Дата оплаты")
+    y -= 0.7 * cm
+
+    for expense in expenses:
+        p.drawString(2 * cm, y, str(expense.get_category_display()))
+        p.drawString(7 * cm, y, str(expense.amount))
+        p.drawString(10 * cm, y, str(expense.payment_amount))
+        p.drawString(14 * cm, y, expense.payment_date.strftime('%d.%m.%Y') if expense.payment_date else '-')
+        y -= 0.6 * cm
+        if y < 3 * cm:
+            p.showPage()
+            y = height - 2 * cm
+            p.setFont("DejaVuSans", 10)
+
+    y -= 1 * cm
+    p.setFont("DejaVuSans", 12)
+    p.drawString(2 * cm, y, "Потребление ресурсов:")
+    y -= 1 * cm
+
+    p.setFont("DejaVuSans", 10)
+    # Теперь подставляем из словаря, если нет данных — ставим "-"
+    p.drawString(2 * cm, y, f"{month:02d}/{year}")
+    p.drawString(6 * cm, y, f"Электричество: {usage_dict.get('electricity', '-')}")
+    p.drawString(11 * cm, y, f"Хол. вода: {usage_dict.get('cold_water', '-')}")
+    p.drawString(16 * cm, y, f"Гор. вода: {usage_dict.get('hot_water', '-')}")
+
+    p.showPage()
+    p.save()
+    return response

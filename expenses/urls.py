@@ -14,4 +14,5 @@ urlpatterns = [
     path('pay_all/', views.pay_all_expenses, name='pay_all_expenses'),
     path('add-expense-modal/', views.add_expense_modal, name='add_expense_modal'),
     path('month/<int:year>/<int:month>/', views.monthly_expenses, name='monthly_expenses'),
+    path('export/pdf/', views.export_to_pdf, name='export_to_pdf'),
 ]

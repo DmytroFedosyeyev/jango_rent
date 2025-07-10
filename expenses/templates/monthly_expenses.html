@@ -4,6 +4,9 @@
 
 {% block content %}
 <h2>Расходы за {{ month_name }} {{ year }}</h2>
+<a href="{% url 'expenses:export_to_pdf' %}?year={{ year }}&month={{ month }}" class="btn btn-outline-secondary" target="_blank">
+    📄 Экспорт в PDF
+</a>
 
 <table class="table">
     <thead>
