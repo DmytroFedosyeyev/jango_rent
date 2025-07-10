@@ -18,12 +18,14 @@ from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from expenses.views import welcome
+from django.views.i18n import set_language
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('i18n/setlang/', set_language, name='set_language'),
     path('', include('expenses.urls')),
-    path('', welcome, name='welcome'),
+    path('welcome/', welcome, name='welcome'),
 ]
 

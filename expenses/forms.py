@@ -2,6 +2,7 @@ from django import forms
 from .models import Expense, MeterReading
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
+from django.utils.translation import gettext_lazy as _
 
 class ExpenseForm(forms.ModelForm):
  class Meta:

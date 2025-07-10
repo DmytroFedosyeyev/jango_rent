@@ -1,24 +1,25 @@
 {% extends "base.html" %}
+{% load i18n %}
 
 {% block content %}
-  <h1>Дашборд</h1>
-  <p>Текущий месяц: {{ current_month }}</p>
-  <p>Текущий год: {{ current_year }}</p>
+  <h1>{% trans "Дашборд" %}</h1>
+  <p>{% trans "Текущий месяц" %}: {{ current_month }}</p>
+  <p>{% trans "Текущий год" %}: {{ current_year }}</p>
 
-  <h2>Список расходов</h2>
+  <h2>{% trans "Список расходов" %}</h2>
   {% if expenses %}
     <ul>
       {% for expense in expenses %}
         <li>
           {{ expense.date }} — <strong>{{ expense.get_category_display }}</strong>:
-          {{ expense.amount }} € {% if expense.paid %}(оплачено){% else %}(не оплачено){% endif %}
+          {{ expense.amount }} € {% if expense.paid %}({% trans "оплачено" %}){% else %}({% trans "не оплачено" %}){% endif %}
         </li>
       {% endfor %}
     </ul>
-    <p><strong>Итого:</strong> {{ total_expenses }} €</p>
+    <p><strong>{% trans "Итого" %}:</strong> {{ total_expenses }} €</p>
   {% else %}
-    <p>Расходов пока нет.</p>
+    <p>{% trans "Расходов пока нет." %}</p>
   {% endif %}
 
-  <a href="{% url 'add_expense' %}">Добавить расход</a>
+  <a href="{% url 'add_expense' %}">{% trans "Добавить расход" %}</a>
 {% endblock %}

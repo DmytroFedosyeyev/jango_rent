@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Регистрация{% endblock %}
+{% block title %}{% trans "Регистрация" %}{% endblock %}
 
 {% block content %}
 <style>
@@ -97,7 +98,7 @@
 </style>
 
 <div class="register-wrapper">
-    <h2>Создание аккаунта</h2>
+    <h2>{% trans "Создание аккаунта" %}</h2>
 
     <form method="post">
         {% csrf_token %}
@@ -108,12 +109,11 @@
             <label for="{{ field.id_for_label }}">{{ field.label }}</label>
             {{ field }}
         {% endfor %}
-        <button type="submit" class="btn">Зарегистрироваться</button>
+        <button type="submit" class="btn">{% trans "Зарегистрироваться" %}</button>
     </form>
 
     <div class="login-link">
-        Уже есть аккаунт?
-        <a href="{% url 'login' %}">Войти</a>
+        {% blocktrans %}Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a>{% endblocktrans %}
     </div>
 </div>
 {% endblock %}

@@ -33,9 +33,30 @@ from .models import MeterReading, Expense, RentRate
 from expenses.utils import process_category
 from expenses.models import MonthlyUsage
 
+from django.utils.translation import gettext_lazy as _
+
 
 
 logger = logging.getLogger(__name__)
+
+CATEGORY_DISPLAY = {
+    'rent': _('Аренда'),
+    'utilities': _('Коммунальные'),
+    'electricity': _('Электричество'),
+}
+
+# Список месяцев с переводом
+MONTHS = [
+    _('Янв'), _('Фев'), _('Мар'), _('Апр'), _('Май'), _('Июн'),
+    _('Июл'), _('Авг'), _('Сен'), _('Окт'), _('Ноя'), _('Дек')
+]
+
+# Статусы с переводом
+STATUS_DISPLAY = {
+    'paid': _('Оплачено'),
+    'debt': _('Долг'),
+    'future': _('Будущие')
+}
 
 @login_required
 def add_expense(request):
@@ -130,26 +151,25 @@ def home(request):
         'date': rent_expense.date if rent_expense else None,
         'paid': rent_expense.paid if rent_expense else False,
         'payment_date': rent_expense.payment_date if rent_expense else None,
-        'payment_amount': rent_expense.payment_amount if rent_expense else 0,  # Используем поле из модели
+        'payment_amount': rent_expense.payment_amount if rent_expense else 0,
     }
     utilities = {
         'amount': utilities_expense.amount if utilities_expense else 0,
         'date': utilities_expense.date if utilities_expense else None,
         'paid': utilities_expense.paid if utilities_expense else False,
         'payment_date': utilities_expense.payment_date if utilities_expense else None,
-        'payment_amount': utilities_expense.payment_amount if utilities_expense else 0,  # Используем поле из модели
+        'payment_amount': utilities_expense.payment_amount if utilities_expense else 0,
     }
     electricity = {
         'amount': electricity_expense.amount if electricity_expense else 0,
         'date': electricity_expense.date if electricity_expense else None,
         'paid': electricity_expense.paid if electricity_expense else False,
         'payment_date': electricity_expense.payment_date if electricity_expense else None,
-        'payment_amount': electricity_expense.payment_amount if electricity_expense else 0,  # Используем поле из модели
+        'payment_amount': electricity_expense.payment_amount if electricity_expense else 0,
     }
 
     total = Decimal(rent['amount']) + Decimal(utilities['amount']) + Decimal(electricity['amount'])
 
-    # Долги
     past_expenses = Expense.objects.filter(
         user=request.user,
         date__lt=start_of_month
@@ -159,7 +179,6 @@ def home(request):
     electricity_debt = past_expenses.filter(category='electricity').aggregate(total_debt=Sum('debt'))['total_debt'] or Decimal('0.00')
     total_debt = Decimal(rent_debt) + Decimal(utilities_debt) + Decimal(electricity_debt)
 
-    # Календарь месяцев
     months = []
     for month in range(1, 13):
         start_date = date(2025, month, 1)
@@ -172,9 +191,9 @@ def home(request):
         total_month_debt = month_expenses.aggregate(total_debt=Sum('debt'))['total_debt'] or Decimal('0.00')
         status = 'future' if month > current_month else ('paid' if total_month_debt == 0 else 'debt')
         months.append({
-            'name': ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'][month-1],
-            'status': status,
-            'start_date':  start_date,
+            'name': MONTHS[month-1],  # Используем переведённые названия месяцев
+            'status': STATUS_DISPLAY[status],  # Используем переведённые статусы
+            'start_date': start_date,
             'end_date': end_date,
         })
 
@@ -384,11 +403,57 @@ def overview(request):
     user = request.user
     today = date.today()
     current_year = today.year
+    current_month = today.month
+
+    # Агрегация расходов по категориям с января по текущий месяц, исключая 'all'
+    category_expenses = Expense.objects.filter(
+        user=user,
+        date__year=current_year,
+        date__month__lte=current_month,
+        category__in=['rent', 'utilities', 'electricity']  # Исключаем категорию 'all'
+    ).values('category').annotate(
+        total_amount=Sum('amount')
+    )
+
+    # Определяем желаемый порядок категорий
+    desired_order = ['rent', 'utilities', 'electricity']
+
+    # Создаём словарь для быстрого доступа к данным категорий
+    expenses_dict = {exp['category']: exp['total_amount'] or 0 for exp in category_expenses}
+
+    # Формируем список для шаблона в нужном порядке
+    expenses_by_category = []
+    for category in desired_order:
+        if category in expenses_dict:
+            expenses_by_category.append({
+                'category': category,
+                'category_display': CATEGORY_DISPLAY.get(category, category),
+                'total_amount': expenses_dict[category]
+            })
+
+    # Добавляем строку "Всего"
+    total_year = Expense.objects.filter(
+        user=user,
+        date__year=current_year,
+        date__month__lte=current_month,
+        category__in=['rent', 'utilities', 'electricity']
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
+    expenses_by_category.append({
+        'category': 'total',
+        'category_display': _('Всего'),
+        'total_amount': total_year
+    })
+
+    # Сумма за всё время
+    total_all_time = Expense.objects.filter(
+        user=user,
+        category__in=['rent', 'utilities', 'electricity']
+    ).aggregate(total=Sum('amount'))['total'] or 0
 
     categories = ['electricity', 'cold_water', 'hot_water']
     months = [date(current_year, m, 1) for m in range(1, 13)]
 
-    # Получаем все показания до и включая декабрь предыдущего года и текущий год
     readings = MeterReading.objects.filter(
         user=user,
         date__lte=date(current_year, 12, 31),
@@ -399,42 +464,30 @@ def overview(request):
     for r in readings:
         readings_by_cat[r.category].append(r)
 
-    # Обработка и заполнение пропусков
     @transaction.atomic
     def process_category(category):
         data = readings_by_cat[category]
         filled = {}
-
-        # Словарь: (год, месяц) -> показание
         raw = {(r.date.year, r.date.month): r for r in data}
-
-        # Найдём крайние даты
         all_keys = sorted(raw.keys())
         if not all_keys:
-            return []  # нет данных вообще
-
-        # Добавим показания на каждое начало месяца, если не хватает — интерполируем
+            return []
         for i in range(len(all_keys) - 1):
             (y1, m1), (y2, m2) = all_keys[i], all_keys[i + 1]
             d1 = raw[(y1, m1)].date
             d2 = raw[(y2, m2)].date
             v1 = raw[(y1, m1)].value
             v2 = raw[(y2, m2)].value
-
             delta_months = (y2 - y1) * 12 + (m2 - m1)
             if delta_months <= 1:
-                continue  # нет пропусков
-
+                continue
             avg_increase = (v2 - v1) / delta_months
-
             for j in range(1, delta_months):
                 new_month = (m1 + j - 1) % 12 + 1
                 new_year = y1 + (m1 + j - 1) // 12
                 _, last_day = monthrange(new_year, new_month)
                 new_date = date(new_year, new_month, last_day)
                 new_value = v1 + avg_increase * j
-
-                # Добавим в базу
                 new_reading = MeterReading.objects.create(
                     user=user,
                     category=category,
@@ -442,8 +495,6 @@ def overview(request):
                     date=new_date
                 )
                 raw[(new_year, new_month)] = new_reading
-
-        # Снова отсортируем
         sorted_keys = sorted([k for k in raw if k[0] == current_year])
         usage = []
         for i in range(len(sorted_keys)):
@@ -456,7 +507,6 @@ def overview(request):
             prev = raw[prev_key]
             diff = round(float(curr.value - prev.value), 2)
             usage.append(diff if diff >= 0 else 0)
-
         return usage
 
     electricity_data = process_category('electricity')
@@ -473,18 +523,12 @@ def overview(request):
             'avg': round(sum(filtered) / len(filtered), 2),
         }
 
-    month_labels = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн',
-                    'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
-
-    # последние расходы для таблицы
-    recent_expenses = Expense.objects.filter(user=user).order_by('-date')[:5]
-    total_all_time = Expense.objects.filter(user=user).aggregate(total=Sum('amount'))['total'] or 0
-    total_year = Expense.objects.filter(user=user, date__year=current_year).aggregate(total=Sum('amount'))['total'] or 0
+    month_labels = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
 
     context = {
         'current_month': today.strftime('%B'),
         'current_year': current_year,
-        'recent_expenses': recent_expenses,
+        'expenses_by_category': expenses_by_category,
         'total_all_time': total_all_time,
         'total_year': total_year,
         'chart_months': month_labels,

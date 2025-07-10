@@ -1,37 +1,38 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Расходы за {{ month_name }} {{ year }}{% endblock %}
+{% block title %}{% blocktrans %}Расходы за {{ month_name }} {{ year }}{% endblocktrans %}{% endblock %}
 
 {% block content %}
-<h2>Расходы за {{ month_name }} {{ year }}</h2>
+<h2>{% blocktrans %}Расходы за {{ month_name }} {{ year }}{% endblocktrans %}</h2>
 <a href="{% url 'expenses:export_to_pdf' %}?year={{ year }}&month={{ month }}" class="btn btn-outline-secondary" target="_blank">
-    📄 Экспорт в PDF
+    📄 {% trans "Экспорт в PDF" %}
 </a>
 
 <table class="table">
     <thead>
         <tr>
-            <th>Категория</th>
-            <th>Сумма (€)</th>
-            <th>Оплачено (€)</th>
-            <th>Дата оплаты</th>
+            <th>{% trans "Категория" %}</th>
+            <th>{% trans "Сумма (€)" %}</th>
+            <th>{% trans "Оплачено (€)" %}</th>
+            <th>{% trans "Дата оплаты" %}</th>
         </tr>
     </thead>
     <tbody>
         <tr>
-            <td>Аренда</td>
+            <td>{% trans "Аренда" %}</td>
             <td>{{ rent.amount|default:"0.00" }}</td>
             <td>{{ rent.payment_amount|default:"0.00" }}</td>
             <td>{{ rent.payment_date|date:"d.m.Y"|default:"-" }}</td>
         </tr>
         <tr>
-            <td>Коммунальные</td>
+            <td>{% trans "Коммунальные" %}</td>
             <td>{{ utilities.amount|default:"0.00" }}</td>
             <td>{{ utilities.payment_amount|default:"0.00" }}</td>
             <td>{{ utilities.payment_date|date:"d.m.Y"|default:"-" }}</td>
         </tr>
         <tr>
-            <td>Электричество</td>
+            <td>{% trans "Электричество" %}</td>
             <td>{{ electricity.amount|default:"0.00" }}</td>
             <td>{{ electricity.payment_amount|default:"0.00" }}</td>
             <td>{{ electricity.payment_date|date:"d.m.Y"|default:"-" }}</td>
@@ -39,26 +40,26 @@
     </tbody>
 </table>
 
-<h3>Потребление воды и электричества</h3>
+<h3>{% trans "Потребление воды и электричества" %}</h3>
 <table class="table">
     <thead>
         <tr>
-            <th>Категория</th>
-            <th>Расход</th>
+            <th>{% trans "Категория" %}</th>
+            <th>{% trans "Расход" %}</th>
         </tr>
     </thead>
     <tbody>
         <tr>
-            <td>Электричество</td>
-            <td>{{ usage.electricity }} кВт·ч</td>
+            <td>{% trans "Электричество" %}</td>
+            <td>{{ usage.electricity }} {% trans "кВт·ч" %}</td>
         </tr>
         <tr>
-            <td>Холодная вода</td>
-            <td>{{ usage.cold_water }} м³</td>
+            <td>{% trans "Холодная вода" %}</td>
+            <td>{{ usage.cold_water }} {% trans "м³" %}</td>
         </tr>
         <tr>
-            <td>Горячая вода</td>
-            <td>{{ usage.hot_water }} м³</td>
+            <td>{% trans "Горячая вода" %}</td>
+            <td>{{ usage.hot_water }} {% trans "м³" %}</td>
         </tr>
     </tbody>
 </table>

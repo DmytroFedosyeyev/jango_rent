@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Вход в систему{% endblock %}
+{% block title %}{% trans "Вход в систему" %}{% endblock %}
 
 {% block content %}
 <style>
@@ -72,21 +73,23 @@
 </style>
 
 <div class="login-wrapper">
-    <h2>Вход в систему</h2>
+    <h2>{% trans "Вход в систему" %}</h2>
 
     {% if form.errors %}
-        <div class="error-message">Неверный логин или пароль. Попробуйте снова.</div>
+        <div class="error-message">{% trans "Неверный логин или пароль. Попробуйте снова." %}</div>
     {% endif %}
 
     <form method="post">
         {% csrf_token %}
         {{ form.username.label_tag }} {{ form.username }}
         {{ form.password.label_tag }} {{ form.password }}
-        <button type="submit" class="btn">Войти</button>
+        <button type="submit" class="btn">{% trans "Войти" %}</button>
     </form>
 
     <div class="register-link">
-        <p style="margin-top: 20px;">Нет аккаунта? <a href="{% url 'expenses:register' %}">Зарегистрируйтесь</a></p>
+        <p style="margin-top: 20px;">
+            {% blocktrans %}Нет аккаунта? <a href="{% url 'expenses:register' %}">Зарегистрируйтесь</a>{% endblocktrans %}
+        </p>
     </div>
 </div>
 {% endblock %}

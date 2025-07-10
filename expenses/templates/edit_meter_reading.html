@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load i18n %}
 {% load form_filters %}
 
-{% block title %}Редактировать показания{% endblock %}
+{% block title %}{% trans "Редактировать показания" %}{% endblock %}
 
 {% block content %}
 <style>
@@ -90,7 +91,7 @@
 </style>
 
 <div class="edit-form-container">
-    <h2>Редактировать показания</h2>
+    <h2>{% trans "Редактировать показания" %}</h2>
     <form method="post">
         {% csrf_token %}
         {{ form.non_field_errors }}
@@ -102,8 +103,8 @@
         {% endfor %}
 
         <div class="btn-row">
-            <a href="{% url 'expenses:filter_expenses' %}">Назад</a>
-            <button type="submit">Сохранить</button>
+            <a href="{% url 'expenses:filter_expenses' %}">{% trans "Назад" %}</a>
+            <button type="submit">{% trans "Сохранить" %}</button>
         </div>
     </form>
 </div>

@@ -1,15 +1,16 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load form_filters %}
 
-{% block title %}Добавить расход{% endblock %}
+{% block title %}{% trans "Добавить расход" %}{% endblock %}
 
 {% block content %}
 <div class="container">
-    <h2>Добавить данные</h2>
+    <h2>{% trans "Добавить данные" %}</h2>
 
     <!-- Блок 1: Финансовый расход -->
     <div class="form-block">
-        <h3>Финансовый расход</h3>
+        <h3>{% trans "Финансовый расход" %}</h3>
         <form method="post" class="styled-form">
             {% csrf_token %}
             {% for field in expense_form %}
@@ -21,13 +22,13 @@
                     {% endif %}
                 </div>
             {% endfor %}
-            <button type="submit" class="btn-submit">Сохранить расход</button>
+            <button type="submit" class="btn-submit">{% trans "Сохранить расход" %}</button>
         </form>
     </div>
 
     <!-- Блок 2: Показания счётчиков -->
     <div class="form-block">
-        <h3>Показания счётчиков</h3>
+        <h3>{% trans "Показания счётчиков" %}</h3>
         <form method="post" class="styled-form">
             {% csrf_token %}
             {% for field in meter_form %}
@@ -39,7 +40,7 @@
                     {% endif %}
                 </div>
             {% endfor %}
-            <button type="submit" class="btn-submit">Сохранить показания</button>
+            <button type="submit" class="btn-submit">{% trans "Сохранить показания" %}</button>
         </form>
     </div>
 </div>

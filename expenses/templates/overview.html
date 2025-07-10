@@ -1,47 +1,46 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Обзор расходов{% endblock %}
+{% block title %}{% trans "Обзор расходов" %}{% endblock %}
 
 {% block content %}
 <div class="container">
-    <h2>Обзор расходов</h2>
-    <p>Текущий месяц: {{ current_month }} {{ current_year }}</p>
+    <h2>{% trans "Обзор расходов" %}</h2>
+    <p>{% blocktrans %}Текущий месяц: {{ current_month }} {{ current_year }}{% endblocktrans %}</p>
 
-    <h3>Последние расходы</h3>
+    <h3>{% trans "Расходы по категориям за год" %}</h3>
     <table class="table">
         <thead>
             <tr>
-                <th>Категория</th>
-                <th>Сумма (€)</th>
-                <th>Дата</th>
+                <th>{% trans "Категория" %}</th>
+                <th>{% trans "Сумма (€)" %}</th>
             </tr>
         </thead>
         <tbody>
-            {% for expense in recent_expenses %}
+            {% for expense in expenses_by_category %}
             <tr>
-                <td>{{ expense.get_category_display }}</td>
-                <td>{{ expense.amount|floatformat:2 }}</td>
-                <td>{{ expense.date }}</td>
+                <td>{{ expense.category_display }}</td>
+                <td>{{ expense.total_amount|floatformat:2 }}</td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="3">Нет недавних расходов</td>
+                <td colspan="2">{% trans "Нет расходов за год" %}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
-    <h3>Суммы</h3>
-    <p>Всего за всё время: {{ total_all_time|floatformat:2 }} €</p>
-    <p>Всего за {{ current_year }}: {{ total_year|floatformat:2 }} €</p>
+    <h3>{% trans "Суммы" %}</h3>
+    <p>{% blocktrans %}Всего за всё время: {{ total_all_time|floatformat:2 }} €{% endblocktrans %}</p>
+    <p>{% blocktrans %}Всего за {{ current_year }}: {{ total_year|floatformat:2 }} €{% endblocktrans %}</p>
 
-    <h3>Графики потребления</h3>
+    <h3>{% trans "Графики потребления" %}</h3>
     <div style="margin-bottom: 20px;">
-        <h4>Расход электроэнергии (кВт·ч)</h4>
+        <h4>{% trans "Расход электроэнергии (кВт·ч)" %}</h4>
         <canvas id="electricityChart" width="400" height="200"></canvas>
     </div>
     <div>
-        <h4>Расход воды (м³)</h4>
+        <h4>{% trans "Расход воды (м³)" %}</h4>
         <canvas id="waterChart" width="400" height="200"></canvas>
     </div>
 </div>
@@ -54,7 +53,7 @@
         data: {
             labels: {{ chart_months|safe }},
             datasets: [{
-                label: 'Электричество (кВт·ч)',
+                label: '{% trans "Электричество (кВт·ч)" %}',
                 data: {{ electricity_data|safe }},
                 backgroundColor: '#007bff',
             }]
@@ -63,7 +62,7 @@
             scales: {
                 y: {
                     beginAtZero: true,
-                    title: { display: true, text: 'кВт·ч' }
+                    title: { display: true, text: '{% trans "кВт·ч" %}' }
                 }
             }
         }
@@ -76,13 +75,13 @@
             labels: {{ chart_months|safe }},
             datasets: [
                 {
-                    label: 'Холодная вода (м³)',
+                    label: '{% trans "Холодная вода (м³)" %}',
                     data: {{ cold_water_data|safe }},
                     borderColor: '#007bff',
                     fill: false
                 },
                 {
-                    label: 'Горячая вода (м³)',
+                    label: '{% trans "Горячая вода (м³)" %}',
                     data: {{ hot_water_data|safe }},
                     borderColor: '#dc3545',
                     fill: false
@@ -93,7 +92,7 @@
             scales: {
                 y: {
                     beginAtZero: true,
-                    title: { display: true, text: 'м³' }
+                    title: { display: true, text: '{% trans "м³" %}' }
                 }
             }
         }
@@ -101,31 +100,31 @@
 </script>
 
 <hr>
-<h3>Статистика потребления за {{ current_year }}</h3>
+<h3>{% blocktrans %}Статистика потребления за {{ current_year }}{% endblocktrans %}</h3>
 
 <div class="row">
     <div class="col">
-        <h4>Электричество (кВт·ч)</h4>
+        <h4>{% trans "Электричество (кВт·ч)" %}</h4>
         <ul>
-            <li>Максимум: {{ electricity_stats.max|floatformat:2 }}</li>
-            <li>Минимум: {{ electricity_stats.min|floatformat:2 }}</li>
-            <li>Среднее: {{ electricity_stats.avg|floatformat:2 }}</li>
+            <li>{% trans "Максимум" %}: {{ electricity_stats.max|floatformat:2 }}</li>
+            <li>{% trans "Минимум" %}: {{ electricity_stats.min|floatformat:2 }}</li>
+            <li>{% trans "Среднее" %}: {{ electricity_stats.avg|floatformat:2 }}</li>
         </ul>
     </div>
     <div class="col">
-        <h4>Холодная вода (м³)</h4>
+        <h4>{% trans "Холодная вода (м³)" %}</h4>
         <ul>
-            <li>Максимум: {{ cold_water_stats.max|floatformat:2 }}</li>
-            <li>Минимум: {{ cold_water_stats.min|floatformat:2 }}</li>
-            <li>Среднее: {{ cold_water_stats.avg|floatformat:2 }}</li>
+            <li>{% trans "Максимум" %}: {{ cold_water_stats.max|floatformat:2 }}</li>
+            <li>{% trans "Минимум" %}: {{ cold_water_stats.min|floatformat:2 }}</li>
+            <li>{% trans "Среднее" %}: {{ cold_water_stats.avg|floatformat:2 }}</li>
         </ul>
     </div>
     <div class="col">
-        <h4>Горячая вода (м³)</h4>
+        <h4>{% trans "Горячая вода (м³)" %}</h4>
         <ul>
-            <li>Максимум: {{ hot_water_stats.max|floatformat:2 }}</li>
-            <li>Минимум: {{ hot_water_stats.min|floatformat:2 }}</li>
-            <li>Среднее: {{ hot_water_stats.avg|floatformat:2 }}</li>
+            <li>{% trans "Максимум" %}: {{ hot_water_stats.max|floatformat:2 }}</li>
+            <li>{% trans "Минимум" %}: {{ hot_water_stats.min|floatformat:2 }}</li>
+            <li>{% trans "Среднее" %}: {{ hot_water_stats.avg|floatformat:2 }}</li>
         </ul>
     </div>
 </div>

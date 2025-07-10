@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}Аренда квартиры{% endblock %}
+{% block title %}{% trans "Аренда квартиры" %}{% endblock %}
 
 {% block content %}
 <style>
@@ -59,9 +60,9 @@
 </style>
 
 <div class="welcome-wrapper">
-    <h1>Аренда квартиры</h1>
-    <p>Добро пожаловать! Учет ваших расходов стал проще. Войдите или создайте аккаунт, чтобы начать.</p>
-    <a href="{% url 'login' %}" class="btn btn-login">Войти</a>
-    <a href="{% url 'register' %}" class="btn btn-register">Регистрация</a>
+    <h1>{% trans "Аренда квартиры" %}</h1>
+    <p>{% trans "Добро пожаловать! Учет ваших расходов стал проще. Войдите или создайте аккаунт, чтобы начать." %}</p>
+    <a href="{% url 'login' %}" class="btn btn-login">{% trans "Войти" %}</a>
+    <a href="{% url 'register' %}" class="btn btn-register">{% trans "Регистрация" %}</a>
 </div>
 {% endblock %}
