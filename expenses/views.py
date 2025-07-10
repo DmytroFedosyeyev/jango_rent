@@ -1,37 +1,38 @@
+import os
 import logging
 import datetime
 import calendar
-import os
-import logging
+from decimal import Decimal, InvalidOperation
+from datetime import date, timedelta
+
 from django.shortcuts import render, redirect, get_object_or_404
-from .forms import ExpenseForm, MeterReadingForm, RegisterForm
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseBadRequest, HttpResponse
 from django.urls import reverse
-from .forms import EditSingleReadingForm
 from django.contrib import messages
-from calendar import monthrange
-from decimal import Decimal, InvalidOperation
 from django.db.models import Sum, Q
 from django.db import transaction
-from .models import MeterReading, Expense
-from .models import RentRate
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
-from datetime import date, timedelta
-from expenses.utils import process_category
-from expenses.models import MonthlyUsage
 from django.template.loader import get_template
-from xhtml2pdf import pisa
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 from django.conf import settings
-from reportlab.rl_config import TTFSearchPath
+
+from xhtml2pdf import pisa
+
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.units import cm
+from reportlab.rl_config import TTFSearchPath
+
+from calendar import monthrange
+
+from .forms import ExpenseForm, MeterReadingForm, RegisterForm, EditSingleReadingForm
+from .models import MeterReading, Expense, RentRate
+from expenses.utils import process_category
+from expenses.models import MonthlyUsage
+
 
 
 logger = logging.getLogger(__name__)

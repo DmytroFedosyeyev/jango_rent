@@ -177,6 +177,63 @@
         .was-validated input:invalid {
             border-color: #c0392b;
         }
+
+        .month-calendar {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .month-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .month-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            user-select: none;
+        }
+
+        /* Цвета по статусу */
+        .month-paid {
+            background-color: #28a745; /* зеленый */
+            color: white;
+        }
+        .month-debt {
+            background-color: #dc3545; /* красный */
+            color: white;
+        }
+        .month-future {
+            background-color: #6c757d; /* серый */
+            color: white;
+            cursor: default;
+        }
+
+        /* Ссылка */
+        .month-link {
+            color: inherit;
+            text-decoration: none;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
+        }
+
+        /* Эффект при наведении */
+        .month-link:hover {
+            filter: brightness(110%);
+            text-decoration: underline;
+        }
+
     </style>
 </head>
 <body>
