@@ -192,7 +192,7 @@ def home(request):
         status = 'future' if month > current_month else ('paid' if total_month_debt == 0 else 'debt')
         months.append({
             'name': MONTHS[month-1],  # Используем переведённые названия месяцев
-            'status': STATUS_DISPLAY[status],  # Используем переведённые статусы
+            'status': status,  # Используем переведённые статусы
             'start_date': start_date,
             'end_date': end_date,
         })
