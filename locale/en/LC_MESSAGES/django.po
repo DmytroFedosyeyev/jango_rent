@@ -1,439 +1,539 @@
-# English translations for Django project
-# Created by Grok 3, xAI
 msgid ""
 msgstr ""
-"Project-Id-Version: 1.0\n"
+"Project-Id-Version: Django Rent\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-07-10 22:37+0300\n"
-"PO-Revision-Date: 2025-07-10 22:37+0300\n"
-"Last-Translator: Grok 3 <support@x.ai>\n"
-"Language-Team: English\n"
+"POT-Creation-Date: 2025-07-11 17:58+0300\n"
+"PO-Revision-Date: 2025-07-11 17:58+0300\n"
+"Last-Translator: \n"
+"Language-Team: English <en@transifex.com>\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: add_expenses.html:6 add_expenses.html:10
-msgid "Добавить расход"
-msgstr "Add Expense"
+# From views.py (MONTHS)
+msgid "Янв"
+msgstr "Jan"
 
-#: add_expenses.html:10
-msgid "Добавить данные"
-msgstr "Add Data"
+msgid "Фев"
+msgstr "Feb"
 
-#: add_expenses.html:12
-msgid "Финансовый расход"
-msgstr "Financial Expense"
+msgid "Мар"
+msgstr "Mar"
 
-#: add_expenses.html:19
-msgid "Сохранить расход"
-msgstr "Save Expense"
+msgid "Апр"
+msgstr "Apr"
 
-#: add_expenses.html:26
-msgid "Показания счётчиков"
-msgstr "Meter Readings"
+msgid "Май"
+msgstr "May"
 
-#: add_expenses.html:33
-msgid "Сохранить показания"
-msgstr "Save Readings"
+msgid "Июн"
+msgstr "Jun"
 
-#: base.html:7
-msgid "Учет расходов"
-msgstr "Expense Tracking"
+msgid "Июл"
+msgstr "Jul"
 
-#: base.html:40
-msgid "Главная"
-msgstr "Home"
+msgid "Авг"
+msgstr "Aug"
 
-#: base.html:41
-msgid "Обзор расходов"
-msgstr "Expense Overview"
+msgid "Сен"
+msgstr "Sep"
 
-#: base.html:42
-msgid "Добавить расход"
-msgstr "Add Expense"
+msgid "Окт"
+msgstr "Oct"
 
-#: base.html:43
-msgid "Выборка за период"
-msgstr "Period Selection"
+msgid "Ноя"
+msgstr "Nov"
 
-#: base.html:47
-msgid "Выйти из аккаунта"
-msgstr "Log Out of Account"
+msgid "Дек"
+msgstr "Dec"
 
-#: base.html:51
-msgid "Выход"
-msgstr "Log Out"
+# From views.py (MONTHS_FULL)
+msgid "Январь"
+msgstr "January"
 
-#: dashboard.html:5
-msgid "Дашборд"
-msgstr "Dashboard"
+msgid "Февраль"
+msgstr "February"
 
-#: dashboard.html:6
-msgid "Текущий месяц"
-msgstr "Current Month"
+msgid "Март"
+msgstr "March"
 
-#: dashboard.html:7
-msgid "Текущий год"
-msgstr "Current Year"
+msgid "Апрель"
+msgstr "April"
 
-#: dashboard.html:9
-msgid "Список расходов"
-msgstr "List of Expenses"
+msgid "Май"
+msgstr "May"
 
-#: dashboard.html:14
-msgid "оплачено"
-msgstr "Paid"
+msgid "Июнь"
+msgstr "June"
 
-#: dashboard.html:14
-msgid "не оплачено"
-msgstr "Not Paid"
+msgid "Июль"
+msgstr "July"
 
-#: dashboard.html:17
-msgid "Расходов пока нет."
-msgstr "No expenses yet."
+msgid "Август"
+msgstr "August"
 
-#: dashboard.html:20
-msgid "Итого"
-msgstr "Total"
+msgid "Сентябрь"
+msgstr "September"
 
-#: dashboard.html:22
-msgid "Добавить расход"
-msgstr "Add Expense"
+msgid "Октябрь"
+msgstr "October"
 
-#: edit_meter_reading.html:6 edit_meter_reading.html:12
-msgid "Редактировать показания"
-msgstr "Edit Readings"
+msgid "Ноябрь"
+msgstr "November"
 
-#: edit_meter_reading.html:20
-msgid "Назад"
-msgstr "Back"
+msgid "Декабрь"
+msgstr "December"
 
-#: edit_meter_reading.html:21
-msgid "Сохранить"
-msgstr "Save"
-
-#: filter_expenses.html:6 filter_expenses.html:13
-msgid "Выборка расходов"
-msgstr "Expense Selection"
-
-#: filter_expenses.html:19
-msgid "Экспорт в PDF"
-msgstr "Export to PDF"
-
-#: filter_expenses.html:23
-msgid "Расходы за {{ current_month }}"
-msgstr "Expenses for {{ current_month }}"
-
-#: filter_expenses.html:28 filter_expenses.html:64 home.html:10 monthly_expenses.html:12
-msgid "Категория"
-msgstr "Category"
-
-#: filter_expenses.html:29 filter_expenses.html:65 home.html:11 monthly_expenses.html:13
-msgid "Сумма (€)"
-msgstr "Amount (€)"
-
-#: filter_expenses.html:30
-msgid "Переплата"
-msgstr "Overpayment"
-
-#: filter_expenses.html:32
-msgid "Долг"
-msgstr "Debt"
-
-#: filter_expenses.html:34 filter_expenses.html:67 home.html:12 monthly_expenses.html:14
-msgid "Оплачено (€)"
-msgstr "Paid (€)"
-
-#: filter_expenses.html:35 filter_expenses.html:68 home.html:13 monthly_expenses.html:15
-msgid "Дата оплаты"
-msgstr "Payment Date"
-
-#: filter_expenses.html:36 home.html:14
-msgid "Действия"
-msgstr "Actions"
-
-#: filter_expenses.html:39 home.html:18
+# From views.py (CATEGORY_DISPLAY)
 msgid "Аренда"
 msgstr "Rent"
 
-#: filter_expenses.html:45 home.html:25
 msgid "Коммунальные"
 msgstr "Utilities"
 
-#: filter_expenses.html:51 home.html:32
 msgid "Электричество"
 msgstr "Electricity"
 
-#: filter_expenses.html:57 home.html:39
-msgid "Оплатить"
-msgstr "Pay"
+# From views.py (STATUS_DISPLAY)
+msgid "Оплачено"
+msgstr "Paid"
 
-#: filter_expenses.html:59 home.html:45
-msgid "Оплатить всё"
-msgstr "Pay All"
+msgid "Долг"
+msgstr "Debt"
 
-#: filter_expenses.html:62
-msgid "Показания счетчиков за {{ current_month }}"
-msgstr "Meter Readings for {{ current_month }}"
+msgid "Будущие"
+msgstr "Future"
 
-#: filter_expenses.html:68
-msgid "Дата"
-msgstr "Date"
+# From views.py (overview)
+msgid "Всего"
+msgstr "Total"
 
-#: filter_expenses.html:69
-msgid "Значение"
-msgstr "Value"
+# From views.py (messages and export_to_pdf)
+msgid "Не найдена ставка аренды. Добавьте её в RentRate."
+msgstr "No rent rate found. Add it in RentRate."
 
-#: filter_expenses.html:70
-msgid "Действие"
-msgstr "Action"
+msgid "Оплата прошла. Распределено: {amount - remaining:.2f} €. Остаток: {remaining:.2f} € перенесён."
+msgstr "Payment processed. Distributed: {amount - remaining:.2f} €. Remainder: {remaining:.2f} € transferred."
 
-#: filter_expenses.html:74
-msgid "Холодная вода"
-msgstr "Cold Water"
+msgid "Сумма и дата оплаты обязательны."
+msgstr "Amount and payment date are required."
 
-#: filter_expenses.html:75
-msgid "Горячая вода"
-msgstr "Hot Water"
+msgid "Неверный формат суммы или даты оплаты."
+msgstr "Invalid amount or payment date format."
 
-#: filter_expenses.html:78
-msgid "Показания счетчиков за текущий месяц отсутствуют."
-msgstr "No meter readings for the current month."
+msgid "Сначала введите сумму расхода через \"Ввести данные\"."
+msgstr "First enter the expense amount via \"Enter Data\"."
 
-#: filter_expenses.html:81
-msgid "Выборка расходов за период:"
-msgstr "Expense Selection for Period:"
+msgid "Оплата для {category} на сумму {paid_part} € обработана."
+msgstr "Payment for {category} of {paid_part} € processed."
 
-#: filter_expenses.html:84
-msgid "С месяца:"
-msgstr "From Month:"
+msgid "Все поля обязательны для заполнения."
+msgstr "All fields are required."
 
-#: filter_expenses.html:87
-msgid "По месяц:"
-msgstr "To Month:"
+msgid "Неверный формат суммы или даты."
+msgstr "Invalid amount or date format."
 
-#: filter_expenses.html:91
-msgid "Фильтровать"
-msgstr "Filter"
+msgid "Расход ({category}) на сумму {amount} € добавлен."
+msgstr "Expense ({category}) of {amount} € added."
 
-#: filter_expenses.html:95
-msgid "Расходы за период с {{ start }} по {{ end }}"
-msgstr "Expenses for the period from {{ start }} to {{ end }}"
+msgid "Регистрация прошла успешно. Теперь войдите в систему."
+msgstr "Registration successful. Now log in."
 
-#: filter_expenses.html:104
-msgid "Показания расхода воды и электричества за период"
-msgstr "Water and Electricity Consumption for the Period"
+msgid "Отчёт за {month}"
+msgstr "Report for {month}"
 
-#: filter_expenses.html:108
-msgid "Суммарный расход"
-msgstr "Total Consumption"
+msgid "Расходы:"
+msgstr "Expenses:"
 
-#: filter_expenses.html:109
-msgid "Минимальный расход"
-msgstr "Minimum Consumption"
+msgid "Потребление ресурсов:"
+msgstr "Resource Consumption:"
 
-#: filter_expenses.html:110
-msgid "Максимальный расход"
-msgstr "Maximum Consumption"
+msgid "Категория"
+msgstr "Category"
 
-#: filter_expenses.html:111
-msgid "Средний расход"
-msgstr "Average Consumption"
+msgid "Сумма"
+msgstr "Amount"
 
-#: filter_expenses.html:123
-msgid "Оплата"
-msgstr "Payment"
+msgid "Оплачено"
+msgstr "Paid"
 
-#: filter_expenses.html:126 filter_expenses.html:130 home.html:54 home.html:63
-msgid "Сумма (€)"
-msgstr "Amount (€)"
-
-#: filter_expenses.html:127 filter_expenses.html:131 home.html:55 home.html:64
 msgid "Дата оплаты"
 msgstr "Payment Date"
 
-#: filter_expenses.html:134 home.html:58 home.html:67
-msgid "Отмена"
-msgstr "Cancel"
+msgid "Электричество: {value}"
+msgstr "Electricity: {value}"
 
-#: filter_expenses.html:136
-msgid "Пожалуйста, введите сумму."
-msgstr "Please enter the amount."
+msgid "Хол. вода: {value}"
+msgstr "Cold Water: {value}"
 
-#: filter_expenses.html:139
-msgid "Пожалуйста, выберите дату."
-msgstr "Please select a date."
+msgid "Гор. вода: {value}"
+msgstr "Hot Water: {value}"
 
-#: home.html:6
-msgid "Главная"
-msgstr "Home"
+msgid "Некорректный запрос"
+msgstr "Invalid request"
 
-#: home.html:9
-msgid "Расходы за {{ current_month }} {{ current_year }}"
-msgstr "Expenses for {{ current_month }} {{ current_year }}"
+msgid "Некорректная сумма или дата оплаты"
+msgstr "Invalid amount or payment date"
 
-#: home.html:15
-msgid "Статус"
-msgstr "Status"
+msgid "Некорректный метод запроса"
+msgstr "Invalid request method"
 
-#: home.html:22 home.html:29 home.html:36
-msgid "Ожидает оплаты"
-msgstr "Pending Payment"
+msgid "Нужно передать year и month"
+msgstr "Year and month must be provided"
 
-#: home.html:21 home.html:28 home.html:35
-msgid "Ввести данные"
-msgstr "Enter Data"
+msgid "Некорректные year или month"
+msgstr "Invalid year or month"
 
-#: home.html:48
-msgid "Долг на 1 {{ current_month }} {{ current_year }}"
-msgstr "Debt as of 1 {{ current_month }} {{ current_year }}"
+# From forms.py or models.py
+msgid "Холодная вода"
+msgstr "Cold Water"
 
-#: home.html:53
-msgid "Статус оплаты по месяцам (2025)"
-msgstr "Payment Status by Month (2025)"
+msgid "Горячая вода"
+msgstr "Hot Water"
 
-#: home.html:61
-msgid "Ввод данных для Аренды"
-msgstr "Enter Data for Rent"
+msgid "Значение"
+msgstr "Value"
 
-#: home.html:62
-msgid "Ввод данных для Коммунальных"
-msgstr "Enter Data for Utilities"
+msgid "Дата"
+msgstr "Date"
 
-#: home.html:63
-msgid "Ввод данных для Электричества"
-msgstr "Enter Data for Electricity"
+msgid "Дата:"
+msgstr "Date:"
 
-#: login.html:6 login.html:12
-msgid "Вход в систему"
-msgstr "Log In"
-
-#: login.html:15
-msgid "Неверный логин или пароль. Попробуйте снова."
-msgstr "Invalid username or password. Please try again."
-
-#: login.html:21
-msgid "Войти"
-msgstr "Log In"
-
-#: login.html:25
-msgid "Нет аккаунта? Зарегистрируйтесь"
-msgstr "Don't have an account? Register"
-
-#: monthly_expenses.html:6 monthly_expenses.html:9
-msgid "Расходы за {{ month_name }} {{ year }}"
-msgstr "Expenses for {{ month_name }} {{ year }}"
-
-#: monthly_expenses.html:11
-msgid "Потребление воды и электричества"
-msgstr "Water and Electricity Consumption"
-
-#: monthly_expenses.html:21 monthly_expenses.html:25 overview.html:30 overview.html:33
 msgid "кВт·ч"
 msgstr "kWh"
 
-#: monthly_expenses.html:22 monthly_expenses.html:23 overview.html:31 overview.html:32
 msgid "м³"
 msgstr "m³"
 
-#: overview.html:6 overview.html:10
-msgid "Обзор расходов"
-msgstr "Expense Overview"
-
-#: overview.html:11
-msgid "Текущий месяц: {{ current_month }} {{ current_year }}"
-msgstr "Current Month: {{ current_month }} {{ current_year }}"
-
-#: overview.html:13
-msgid "Последние расходы"
-msgstr "Recent Expenses"
-
-#: overview.html:20
-msgid "Нет недавних расходов"
-msgstr "No recent expenses"
-
-#: overview.html:24
-msgid "Суммы"
-msgstr "Totals"
-
-#: overview.html:25
-msgid "Всего за всё время: {{ total_all_time|floatformat:2 }} €"
-msgstr "Total All Time: {{ total_all_time|floatformat:2 }} €"
-
-#: overview.html:26
-msgid "Всего за {{ current_year }}: {{ total_year|floatformat:2 }} €"
-msgstr "Total for {{ current_year }}: {{ total_year|floatformat:2 }} €"
-
-#: overview.html:28
-msgid "Графики потребления"
-msgstr "Consumption Charts"
-
-#: overview.html:30
-msgid "Расход электроэнергии (кВт·ч)"
-msgstr "Electricity Consumption (kWh)"
-
-#: overview.html:31
-msgid "Расход воды (м³)"
-msgstr "Water Consumption (m³)"
-
-#: overview.html:34
 msgid "Электричество (кВт·ч)"
 msgstr "Electricity (kWh)"
 
-#: overview.html:35
 msgid "Холодная вода (м³)"
 msgstr "Cold Water (m³)"
 
-#: overview.html:36
-msgid "Горячая вода (м³)"
-msgstr "Hot Water (m³)"
+# From add_expenses.html
+msgid "Добавить расход"
+msgstr "Add Expense"
 
-#: overview.html:39
-msgid "Статистика потребления за {{ current_year }}"
-msgstr "Consumption Statistics for {{ current_year }}"
+msgid "Добавить данные"
+msgstr "Add Data"
 
-#: overview.html:42 overview.html:47 overview.html:52
-msgid "Максимум"
-msgstr "Maximum"
+msgid "Финансовый расход"
+msgstr "Financial Expense"
 
-#: overview.html:43 overview.html:48 overview.html:53
-msgid "Минимум"
-msgstr "Minimum"
+msgid "Показания счётчиков"
+msgstr "Meter Readings"
 
-#: overview.html:44 overview.html:49 overview.html:54
-msgid "Среднее"
-msgstr "Average"
+msgid "Сохранить расход"
+msgstr "Save Expense"
 
-#: register.html:6
-msgid "Регистрация"
-msgstr "Registration"
+msgid "Сохранить показания"
+msgstr "Save Readings"
 
-#: register.html:12
-msgid "Создание аккаунта"
-msgstr "Create an Account"
+msgid "Электричество (кВт·ч)"
+msgstr "Electricity (kWh)"
 
-#: register.html:20
-msgid "Зарегистрироваться"
-msgstr "Register"
+msgid "Холодная вода (м³)"
+msgstr "Cold Water (m³)"
 
-#: register.html:24
-msgid "Уже есть аккаунт? Войти"
-msgstr "Already have an account? Log In"
+msgid "Дата"
+msgstr "Date"
 
-#: welcome.html:6 welcome.html:12
-msgid "Аренда квартиры"
-msgstr "Apartment Rental"
+# From base.html
+msgid "Учет расходов"
+msgstr "Expense Tracking"
 
-#: welcome.html:13
-msgid "Добро пожаловать! Учет ваших расходов стал проще. Войдите или создайте аккаунт, чтобы начать."
-msgstr "Welcome! Tracking your expenses is now easier. Log in or create an account to start."
+msgid "Главная"
+msgstr "Home"
 
-#: welcome.html:15
+msgid "Обзор расходов"
+msgstr "Expense Overview"
+
+msgid "Выборка за период"
+msgstr "Period Selection"
+
+msgid "Выйти из аккаунта"
+msgstr "Log out of account"
+
+msgid "Выход"
+msgstr "Logout"
+
+# From dashboard.html
+msgid "Дашборд"
+msgstr "Dashboard"
+
+msgid "Текущий месяц"
+msgstr "Current Month"
+
+msgid "Текущий год"
+msgstr "Current Year"
+
+msgid "Список расходов"
+msgstr "List of Expenses"
+
+msgid "оплачено"
+msgstr "paid"
+
+msgid "не оплачено"
+msgstr "not paid"
+
+msgid "Итого"
+msgstr "Total"
+
+msgid "Расходов пока нет."
+msgstr "No expenses yet."
+
+# From edit_meter_reading.html
+msgid "Редактировать показания"
+msgstr "Edit Readings"
+
+msgid "Назад"
+msgstr "Back"
+
+msgid "Сохранить"
+msgstr "Save"
+
+# From filter_expenses.html
+msgid "Выборка расходов"
+msgstr "Expense Selection"
+
+msgid "Экспорт в PDF"
+msgstr "Export to PDF"
+
+msgid "Расходы за {{ current_month }}"
+msgstr "Expenses for {{ current_month }}"
+
+msgid "Расходы за"
+msgstr "Expenses for"
+
+msgid "Показания счетчиков за {{ current_month }}"
+msgstr "Meter Readings for {{ current_month }}"
+
+msgid "Показания счетчиков за"
+msgstr "Meter Readings for"
+
+msgid "Переплата"
+msgstr "Overpayment"
+
+msgid "Долг"
+msgstr "Debt"
+
+msgid "Оплачено (€)"
+msgstr "Paid (€)"
+
+msgid "Дата оплаты"
+msgstr "Payment Date"
+
+msgid "Действия"
+msgstr "Actions"
+
+msgid "Действие"
+msgstr "Action"
+
+msgid "Редактировать"
+msgstr "Edit"
+
+msgid "Показания счетчиков за текущий месяц отсутствуют."
+msgstr "No meter readings for the current month."
+
+msgid "Выборка расходов за период:"
+msgstr "Expense Selection for Period:"
+
+msgid "С месяца:"
+msgstr "From Month:"
+
+msgid "По месяц:"
+msgstr "To Month:"
+
+msgid "Фильтровать"
+msgstr "Filter"
+
+msgid "Расходы за период с {{ start }} по {{ end }}"
+msgstr "Expenses for the period from {{ start }} to {{ end }}"
+
+msgid "Расходы за период с по"
+msgstr "Expenses for the period from to"
+
+msgid "Показания расхода воды и электричества за период"
+msgstr "Water and Electricity Consumption for the Period"
+
+msgid "Суммарный расход"
+msgstr "Total Consumption"
+
+msgid "Минимальный расход"
+msgstr "Minimum Consumption"
+
+msgid "Максимальный расход"
+msgstr "Maximum Consumption"
+
+msgid "Средний расход"
+msgstr "Average Consumption"
+
+# From home.html
+msgid "Расходы за %(current_month)s %(current_year)s"
+msgstr "Expenses for %(current_month)s %(current_year)s"
+
+msgid "Расходы за"
+msgstr "Expenses for"
+
+msgid "Долг на 1 %(current_month)s %(current_year)s"
+msgstr "Debt as of 1 %(current_month)s %(current_year)s"
+
+msgid "Долг на"
+msgstr "Debt as of"
+
+msgid "Сумма (€)"
+msgstr "Amount (€)"
+
+msgid "Статус"
+msgstr "Status"
+
+msgid "Ожидает оплаты"
+msgstr "Pending payment"
+
+msgid "Ввести данные"
+msgstr "Enter Data"
+
+msgid "Оплатить"
+msgstr "Pay"
+
+msgid "Оплатить всё"
+msgstr "Pay All"
+
+msgid "Долг (€)"
+msgstr "Debt (€)"
+
+msgid "Статус оплаты по месяцам (2025)"
+msgstr "Payment Status by Month (2025)"
+
+msgid "Оплата"
+msgstr "Payment"
+
+msgid "Пожалуйста, введите сумму."
+msgstr "Please enter the amount."
+
+msgid "Пожалуйста, выберите дату."
+msgstr "Please select a date."
+
+msgid "Отмена"
+msgstr "Cancel"
+
+msgid "Ввод данных"
+msgstr "Data Entry"
+
+msgid "Ввод данных для Аренды"
+msgstr "Enter Data for Rent"
+
+msgid "Ввод данных для Коммунальных"
+msgstr "Enter Data for Utilities"
+
+msgid "Ввод данных для Электричества"
+msgstr "Enter Data for Electricity"
+
+# From login.html
+msgid "Вход в систему"
+msgstr "Login"
+
+msgid "Неверный логин или пароль. Попробуйте снова."
+msgstr "Invalid username or password. Try again."
+
 msgid "Войти"
 msgstr "Log In"
 
-#: welcome.html:16
+msgid "Нет аккаунта?"
+msgstr "No account?"
+
+msgid "Зарегистрируйтесь"
+msgstr "Register"
+
+# From monthly_expenses.html
+msgid "Расходы за {{ month_name }} {{ year }}"
+msgstr "Expenses for {{ month_name }} {{ year }}"
+
+msgid "Потребление воды и электричества"
+msgstr "Water and Electricity Consumption"
+
+# From overview.html
+msgid "Текущий месяц: %(current_month)s %(current_year)s"
+msgstr "Current Month: %(current_month)s %(current_year)s"
+
+msgid "Текущий месяц"
+msgstr "Current Month"
+
+msgid "Всего за всё время: {{ total_all_time|floatformat:2 }} €"
+msgstr "Total for all time: {{ total_all_time|floatformat:2 }} €"
+
+msgid "Всего за всё время"
+msgstr "Total for all time"
+
+msgid "Всего за %(current_year)s: %(total_year).2f €"
+msgstr "Total for %(current_year)s: %(total_year).2f €"
+
+msgid "Всего за"
+msgstr "Total for"
+
+msgid "Статистика потребления за {{ current_year }}"
+msgstr "Consumption Statistics for {{ current_year }}"
+
+msgid "Статистика потребления за %(current_year)s"
+msgstr "Consumption Statistics for %(current_year)s"
+
+msgid "Последние расходы"
+msgstr "Recent Expenses"
+
+msgid "Нет недавних расходов"
+msgstr "No recent expenses"
+
+msgid "Суммы"
+msgstr "Amounts"
+
+msgid "Графики потребления"
+msgstr "Consumption Charts"
+
+msgid "Расход электроэнергии (кВт·ч)"
+msgstr "Electricity Consumption (kWh)"
+
+msgid "Расход воды (м³)"
+msgstr "Water Consumption (m³)"
+
+msgid "Электричество (кВт·ч)"
+msgstr "Electricity (kWh)"
+
+msgid "Холодная вода (м³)"
+msgstr "Cold Water (m³)"
+
+msgid "Горячая вода (м³)"
+msgstr "Hot Water (m³)"
+
+msgid "Максимум"
+msgstr "Maximum"
+
+msgid "Минимум"
+msgstr "Minimum"
+
+msgid "Среднее"
+msgstr "Average"
+
+# From register.html
 msgid "Регистрация"
 msgstr "Registration"
+
+msgid "Создание аккаунта"
+msgstr "Create Account"
+
+msgid "Уже есть аккаунт? <a href=\"{% url 'login' %}\">Войти</a>"
+msgstr "Already have an account? <a href=\"{% url 'login' %}\">Log In</a>"
+
+# From welcome.html
+msgid "Аренда квартиры"
+msgstr "Apartment Rental"
+
+msgid "Добро пожаловать! Учет ваших расходов стал проще. Войдите или создайте аккаунт, чтобы начать."
+msgstr "Welcome! Managing your expenses is now easier. Log in or create an account to get started."
+
+# Missing from templates but mentioned by user
+msgid "Расходы по категориям за год"
+msgstr "Expenses by Category for the Year"

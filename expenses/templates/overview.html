@@ -18,9 +18,9 @@
         </thead>
         <tbody>
             {% for expense in expenses_by_category %}
-            <tr>
-                <td>{{ expense.category_display }}</td>
-                <td>{{ expense.total_amount|floatformat:2 }}</td>
+            <tr{% if expense.category == 'total' %} class="total-row"{% endif %}>
+                <td>{% if expense.category == 'total' %}<strong>{{ expense.category_display }}</strong>{% else %}{{ expense.category_display }}{% endif %}</td>
+                <td>{% if expense.category == 'total' %}<strong>{{ expense.total_amount|floatformat:2 }}</strong>{% else %}{{ expense.total_amount|floatformat:2 }}{% endif %}</td>
             </tr>
             {% empty %}
             <tr>
@@ -29,10 +29,6 @@
             {% endfor %}
         </tbody>
     </table>
-
-    <h3>{% trans "Суммы" %}</h3>
-    <p>{% blocktrans %}Всего за всё время: {{ total_all_time|floatformat:2 }} €{% endblocktrans %}</p>
-    <p>{% blocktrans %}Всего за {{ current_year }}: {{ total_year|floatformat:2 }} €{% endblocktrans %}</p>
 
     <h3>{% trans "Графики потребления" %}</h3>
     <div style="margin-bottom: 20px;">

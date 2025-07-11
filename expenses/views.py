@@ -34,6 +34,7 @@ from expenses.utils import process_category
 from expenses.models import MonthlyUsage
 
 from django.utils.translation import gettext_lazy as _
+from dateutil.relativedelta import relativedelta
 
 
 
@@ -262,7 +263,7 @@ def filter_expenses(request):
             end_month = None
         logger.debug(f"Loaded from session: start_date={start_month}, end_date={end_month}")
 
-    # ✅ Защита от None: если даты не установлены — задаём текущий месяц
+    # Защита от None: если даты не установлены — задаём текущий месяц
     if not start_month:
         start_month = date.today().replace(day=1)
     if not end_month:
@@ -271,8 +272,8 @@ def filter_expenses(request):
 
     # Список месяцев для кнопок
     month_names = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
-    months = [datetime.date(2025, m, 1) for m in range(1, 13)]
-    month_data = list(zip(months, month_names))
+    months = [start_month + relativedelta(months=i) for i in range(12)]
+    month_data = [(month_date, MONTHS[month_date.month - 1]) for month_date in months]
 
     # Данные для текущего месяца
     expenses = Expense.objects.filter(user=request.user, date__year=current_month.year, date__month=current_month.month)

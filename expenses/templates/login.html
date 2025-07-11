@@ -87,8 +87,10 @@
     </form>
 
     <div class="register-link">
+        {% url 'expenses:register' as register_url %}
         <p style="margin-top: 20px;">
-            {% blocktrans %}Нет аккаунта? <a href="{% url 'expenses:register' %}">Зарегистрируйтесь</a>{% endblocktrans %}
+            {% trans "Нет аккаунта?" %}
+            <a href="{{ register_url }}">{% trans "Зарегистрируйтесь" %}</a>
         </p>
     </div>
 </div>
