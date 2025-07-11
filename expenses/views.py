@@ -524,7 +524,7 @@ def overview(request):
             'avg': round(sum(filtered) / len(filtered), 2),
         }
 
-    month_labels = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
+    month_labels = MONTHS
 
     context = {
         'current_month': today.strftime('%B'),
