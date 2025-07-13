@@ -537,3 +537,15 @@ msgstr "Welcome! Managing your expenses is now easier. Log in or create an accou
 # Missing from templates but mentioned by user
 msgid "Расходы по категориям за год"
 msgstr "Expenses by Category for the Year"
+
+msgid "Расходы за %(month)s %(year)s"
+msgstr "Expenses for %(month)s %(year)s"
+
+msgid "Показания счетчиков за %(month)s %(year)s"
+msgstr "Meter readings for %(month)s %(year)s"
+
+msgid "Расходы за период с"
+msgstr "Expenses for the period from"
+
+msgid "по"
+msgstr "to"

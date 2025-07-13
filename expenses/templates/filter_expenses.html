@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load i18n %}
+{% load l10n %}
 
 {% block title %}{% trans "Выборка расходов" %}{% endblock %}
 
@@ -29,7 +30,7 @@
 
     <!-- Таблица расходов за текущий месяц -->
     <h3 style="color: #2c3e50; margin-bottom: 15px;">
-        {% blocktrans with current_month=current_month %}Расходы за {{ current_month }}{% endblocktrans %}
+        {% blocktrans with month=month_name year=month_year %}Расходы за {{ month }} {{ year }}{% endblocktrans %}
     </h3>
     <table class="table">
         <thead>
@@ -102,7 +103,7 @@
 
     <!-- Таблица показаний счетчиков за текущий месяц -->
     <h3 style="color: #2c3e50; margin-top: 40px;">
-        {% blocktrans with current_month=current_month %}Показания счетчиков за {{ current_month }}{% endblocktrans %}
+        {% blocktrans with month=current_month|date:"F" year=current_month|date:"Y" %}Показания счетчиков за {{ month }} {{ year }}{% endblocktrans %}
     </h3>
     {% if meter_readings %}
     <table class="table table-striped">
@@ -161,9 +162,7 @@
 
     {% if start_month and end_month %}
     <h3 style="color: #2c3e50; margin-bottom: 15px;">
-        {% blocktrans with start=start_month|date:"F Y" end=end_month|date:"F Y" %}
-            Расходы за период с {{ start }} по {{ end }}
-        {% endblocktrans %}
+         {% trans "Расходы за период с" %} {{ start_formatted }} {% trans "по" %} {{ end_formatted }}
     </h3>
     <table class="table">
         <thead>

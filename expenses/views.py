@@ -271,8 +271,8 @@ def filter_expenses(request):
         end_month = date(start_month.year, start_month.month, last_day)
 
     # Список месяцев для кнопок
-    month_names = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
-    months = [start_month + relativedelta(months=i) for i in range(12)]
+    year = current_month.year  # или просто: year = date.today().year
+    months = [date(year, m, 1) for m in range(1, 13)]
     month_data = [(month_date, MONTHS[month_date.month - 1]) for month_date in months]
 
     # Данные для текущего месяца
@@ -367,7 +367,9 @@ def filter_expenses(request):
     }
 
     context = {
-        'current_month': current_month.strftime('%B %Y'),
+        'current_month': current_month,
+        'month_name': current_month.strftime('%B'),
+        'month_year': current_month.strftime('%Y'),
         'rent': rent,
         'utilities': utilities,
         'electricity': electricity,
@@ -380,6 +382,8 @@ def filter_expenses(request):
         'period_total': period_total,
         'meter_usage': meter_usage,
         'month_data': month_data,
+        'start_formatted': start_month.strftime('%B %Y') if start_month else '',
+        'end_formatted': end_month.strftime('%B %Y') if end_month else '',
     }
 
     logger.debug(f"Session after: {request.session.items()}")
