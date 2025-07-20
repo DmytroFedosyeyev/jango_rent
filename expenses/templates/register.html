@@ -113,7 +113,11 @@
     </form>
 
     <div class="login-link">
-        {% blocktrans %}Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a>{% endblocktrans %}
+        {% url 'login' as login_url %}
+        {% blocktrans with login_url=login_url %}
+            Уже есть аккаунт? <a href="{{ login_url }}">Войти</a>
+        {% endblocktrans %}
     </div>
+
 </div>
 {% endblock %}
