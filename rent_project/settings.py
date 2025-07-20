@@ -79,8 +79,8 @@ WSGI_APPLICATION = 'rent_project.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('postgresql://jango_rent_user:m2Kzac8VJY6vtQtO8iLDUZ69R8iZA3oq@dpg-d1hs6dur433s73bbjh8g-a.frankfurt-postgres.render.com/jango_rent'),
+    'default': dj_database_url.parse(
+        'postgresql://neondb_owner:npg_ZkX6ydwG1Agq@ep-aged-fog-a2ekp8yd-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require',
         conn_max_age=600,
         ssl_require=True
     )
