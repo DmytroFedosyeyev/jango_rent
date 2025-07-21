@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 class ExpenseForm(forms.ModelForm):
  class Meta:
      model = Expense
-     fields = ['category', 'amount', 'date', 'paid']
+     fields = ['category', 'amount', 'date',]
      widgets = {
          'date': forms.DateInput(attrs={'type': 'date'}),
          'category': forms.Select(),
