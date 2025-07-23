@@ -4,6 +4,7 @@ import datetime
 import calendar
 from decimal import Decimal, InvalidOperation
 from datetime import date, timedelta
+from calendar import monthrange
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -62,16 +63,20 @@ STATUS_DISPLAY = {
 @login_required
 def add_expense(request):
     if request.method == 'POST':
+        form_type = request.POST.get('form_type')
+        logger.debug(f"POST request received with form_type: {form_type}")
+        logger.debug(f"POST data: {request.POST}")
+
+        # Инициализируем обе формы, но валидируем только нужную
         expense_form = ExpenseForm(request.POST, prefix='expense')
         meter_form = MeterReadingForm(request.POST, prefix='meter')
 
-        expense_valid = expense_form.is_valid()
-        meter_valid = meter_form.is_valid()
-
-        if expense_valid or meter_valid:
-            if expense_valid:
+        if form_type == 'expense':
+            logger.debug("Handling expense form submission.")
+            if expense_form.is_valid():
                 expense = expense_form.save(commit=False)
                 expense.user = request.user
+                logger.debug(f"Expense form valid. Category: {expense.category}, Date: {expense.date}")
 
                 if expense.category == 'rent':
                     rent_rate = RentRate.objects.filter(
@@ -80,20 +85,33 @@ def add_expense(request):
                     ).order_by('-start_date').first()
 
                     if rent_rate:
+                        logger.debug(f"Found rent rate: {rent_rate.amount} for date {expense.date}")
                         expense.amount = rent_rate.amount
                     else:
+                        logger.warning("No rent rate found. Redirecting back.")
                         messages.warning(request, 'Не найдена ставка аренды. Добавьте её в RentRate.')
                         return redirect('expenses:add_expense')
 
-                expense.debt = expense.amount
-                expense.save()
-                logger.debug(f"Saved expense: {expense}")
+                expense.debt = expense.amount if not expense.paid else Decimal('0.00')
+                expense.payment_amount = Decimal('0.00')  # Инициализация обязательного поля
 
-            if meter_valid:
+                expense.save()
+                logger.debug(f"Expense saved: {expense}")
+                return redirect('expenses:home')
+            else:
+                logger.warning(f"Expense form invalid: {expense_form.errors}")
+                meter_form = MeterReadingForm(prefix='meter')  # пустая форма счётчиков
+
+        elif form_type == 'meter':
+            logger.debug("Handling meter reading form submission.")
+            if meter_form.is_valid():
                 date_ = meter_form.cleaned_data['date']
                 electricity_usage = meter_form.cleaned_data['electricity_usage']
                 cold_water_usage = meter_form.cleaned_data['cold_water_usage']
                 hot_water_usage = meter_form.cleaned_data['hot_water_usage']
+
+                logger.debug(
+                    f"Meter form valid for date {date_}. Electricity: {electricity_usage}, Cold water: {cold_water_usage}, Hot water: {hot_water_usage}")
 
                 if electricity_usage is not None:
                     MeterReading.objects.create(
@@ -102,7 +120,8 @@ def add_expense(request):
                         value=electricity_usage,
                         date=date_
                     )
-                    logger.debug(f"Saved electricity reading: {electricity_usage} kWh")
+                    logger.debug("Saved electricity reading.")
+
                 if cold_water_usage is not None:
                     MeterReading.objects.create(
                         user=request.user,
@@ -110,7 +129,8 @@ def add_expense(request):
                         value=cold_water_usage,
                         date=date_
                     )
-                    logger.debug(f"Saved cold water reading: {cold_water_usage} m³")
+                    logger.debug("Saved cold water reading.")
+
                 if hot_water_usage is not None:
                     MeterReading.objects.create(
                         user=request.user,
@@ -118,10 +138,20 @@ def add_expense(request):
                         value=hot_water_usage,
                         date=date_
                     )
-                    logger.debug(f"Saved hot water reading: {hot_water_usage} m³")
+                    logger.debug("Saved hot water reading.")
 
-            return redirect('expenses:home')
+                return redirect('expenses:home')
+            else:
+                logger.warning(f"Meter form invalid: {meter_form.errors}")
+                expense_form = ExpenseForm(prefix='expense')  # пустая форма расходов
+
+        else:
+            logger.warning("form_type not specified or invalid.")
+            expense_form = ExpenseForm(prefix='expense')
+            meter_form = MeterReadingForm(prefix='meter')
+
     else:
+        logger.debug("GET request. Rendering empty forms.")
         expense_form = ExpenseForm(prefix='expense')
         meter_form = MeterReadingForm(prefix='meter')
 
@@ -469,37 +499,41 @@ def overview(request):
     for r in readings:
         readings_by_cat[r.category].append(r)
 
-    @transaction.atomic
-    def process_category(category):
-        data = readings_by_cat[category]
-        filled = {}
-        raw = {(r.date.year, r.date.month): r for r in data}
-        all_keys = sorted(raw.keys())
-        if not all_keys:
-            return []
-        for i in range(len(all_keys) - 1):
-            (y1, m1), (y2, m2) = all_keys[i], all_keys[i + 1]
-            d1 = raw[(y1, m1)].date
-            d2 = raw[(y2, m2)].date
-            v1 = raw[(y1, m1)].value
-            v2 = raw[(y2, m2)].value
-            delta_months = (y2 - y1) * 12 + (m2 - m1)
-            if delta_months <= 1:
-                continue
-            avg_increase = (v2 - v1) / delta_months
-            for j in range(1, delta_months):
-                new_month = (m1 + j - 1) % 12 + 1
-                new_year = y1 + (m1 + j - 1) // 12
-                _, last_day = monthrange(new_year, new_month)
-                new_date = date(new_year, new_month, last_day)
-                new_value = v1 + avg_increase * j
-                new_reading = MeterReading.objects.create(
-                    user=user,
-                    category=category,
-                    value=round(new_value, 2),
-                    date=new_date
-                )
-                raw[(new_year, new_month)] = new_reading
+    from django.db import transaction
+
+    def process_category(category, user, current_year):
+        with transaction.atomic():
+            data = readings_by_cat[category]
+            filled = {}
+            raw = {(r.date.year, r.date.month): r for r in data}
+            all_keys = sorted(raw.keys())
+            if not all_keys:
+                return []
+            for i in range(len(all_keys) - 1):
+                (y1, m1), (y2, m2) = all_keys[i], all_keys[i + 1]
+                d1 = raw[(y1, m1)].date
+                d2 = raw[(y2, m2)].date
+                v1 = raw[(y1, m1)].value
+                v2 = raw[(y2, m2)].value
+                delta_months = (y2 - y1) * 12 + (m2 - m1)
+                if delta_months <= 1:
+                    continue
+                avg_increase = (v2 - v1) / delta_months
+                for j in range(1, delta_months):
+                    total_month = m1 + j
+                    new_year = y1 + (total_month - 1) // 12
+                    new_month = (total_month - 1) % 12 + 1
+                    _, last_day = monthrange(new_year, new_month)
+                    new_date = date(new_year, new_month, last_day)
+                    new_value = v1 + avg_increase * j
+                    new_reading = MeterReading.objects.create(
+                        user=user,
+                        category=category,
+                        value=round(new_value, 2),
+                        date=new_date
+                    )
+                    raw[(new_year, new_month)] = new_reading
+
         sorted_keys = sorted([k for k in raw if k[0] == current_year])
         usage = []
         for i in range(len(sorted_keys)):
@@ -514,9 +548,9 @@ def overview(request):
             usage.append(diff if diff >= 0 else 0)
         return usage
 
-    electricity_data = process_category('electricity')
-    cold_water_data = process_category('cold_water')
-    hot_water_data = process_category('hot_water')
+    electricity_data = process_category('electricity', user, current_year)
+    cold_water_data = process_category('cold_water', user, current_year)
+    hot_water_data = process_category('hot_water', user, current_year)
 
     def compute_stats(data):
         filtered = [d for d in data if d > 0]
