@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .confirm-container {
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 25px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  .confirm-container h2 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .confirm-container p {
+    font-size: 16px;
+    color: #555;
+    margin: 8px 0;
+  }
+
+  .confirm-container form {
+    text-align: center;
+    margin-top: 20px;
+  }
+
+  .confirm-container .btn {
+    display: inline-block;
+    padding: 10px 20px;
+    font-weight: bold;
+    border-radius: 5px;
+    text-decoration: none;
+    margin: 0 10px;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-confirm {
+    background-color: #007bff;
+    color: white;
+  }
+
+  .btn-cancel {
+    background-color: #ccc;
+    color: black;
+  }
+
+  .btn:hover {
+    opacity: 0.9;
+  }
+</style>
+
+<div class="confirm-container">
+  <h2>Расход уже существует</h2>
+  <p>Уже существует расход в категории <strong>{{ existing.category }}</strong> за <strong>{{ existing.date|date:"F Y" }}</strong>.</p>
+  <p>Сумма в базе: <strong>{{ existing.amount }} €</strong></p>
+  <p>Вы хотите заменить её новой суммой: <strong>{{ new_expense.amount }} €</strong>?</p>
+
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="form_type" value="expense">
+    <input type="hidden" name="confirm_update" value="1">
+    {{ expense_form.as_p }}
+    <button type="submit" class="btn btn-confirm">Да, заменить</button>
+    <a href="{% url 'expenses:add_expense' %}" class="btn btn-cancel">Отмена</a>
+  </form>
+</div>
+{% endblock %}

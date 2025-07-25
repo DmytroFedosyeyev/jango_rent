@@ -78,6 +78,35 @@ def add_expense(request):
                 expense.user = request.user
                 logger.debug(f"Expense form valid. Category: {expense.category}, Date: {expense.date}")
 
+                # Проверка на дублирующий расход
+                existing = Expense.objects.filter(
+                    user=expense.user,
+                    category=expense.category,
+                    date__year=expense.date.year,
+                    date__month=expense.date.month
+                ).first()
+
+                if existing and 'confirm_update' not in request.POST:
+                    logger.info(f"Duplicate expense found: {existing}. Asking for confirmation.")
+                    return render(request, 'expenses/confirm_update.html', {
+                        'existing': existing,
+                        'new_expense': expense,
+                        'expense_form': expense_form,
+                        'meter_form': MeterReadingForm(prefix='meter'),
+                    })
+
+                if existing and 'confirm_update' in request.POST:
+                    logger.info(f"User confirmed update. Updating existing expense: {existing}")
+                    existing.amount = expense.amount
+                    existing.debt = expense.amount if not expense.paid else Decimal('0.00')
+                    existing.paid = expense.paid
+                    existing.payment_amount = Decimal('0.00')
+                    existing.date = expense.date
+                    existing.save()
+                    messages.success(request, "Расход обновлён.")
+                    return redirect('expenses:home')
+
+                # Аренда — устанавливаем ставку
                 if expense.category == 'rent':
                     rent_rate = RentRate.objects.filter(
                         user=request.user,
@@ -94,7 +123,6 @@ def add_expense(request):
 
                 expense.debt = expense.amount if not expense.paid else Decimal('0.00')
                 expense.payment_amount = Decimal('0.00')  # Инициализация обязательного поля
-
                 expense.save()
                 logger.debug(f"Expense saved: {expense}")
                 return redirect('expenses:home')
@@ -622,7 +650,7 @@ def pay_all_expenses(request):
             remaining -= to_pay
 
     # 2. Закрываем долги за прошлые месяцы
-    if remaining > 0:
+    if remaining > 0 and start_date:
         past_expenses = Expense.objects.filter(
             user=user,
             date__lt=start_date,
