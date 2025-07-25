@@ -1,6 +1,25 @@
 {% extends 'base.html' %}
 {% load i18n %}
 
+{% block extra_head %}
+<style>
+    .stat-max {
+        color: red;
+        font-weight: bold;
+    }
+
+    .stat-min {
+        color: green;
+        font-weight: bold;
+    }
+
+    .stat-avg {
+        color: blue;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
 {% block title %}{% trans "Обзор расходов" %}{% endblock %}
 
 {% block content %}
@@ -102,25 +121,25 @@
     <div class="col">
         <h4>{% trans "Электричество (кВт·ч)" %}</h4>
         <ul>
-            <li>{% trans "Максимум" %}: {{ electricity_stats.max|floatformat:2 }}</li>
-            <li>{% trans "Минимум" %}: {{ electricity_stats.min|floatformat:2 }}</li>
-            <li>{% trans "Среднее" %}: {{ electricity_stats.avg|floatformat:2 }}</li>
+            <li class="stat-max">{% trans "Максимум" %}: {{ electricity_stats.max|floatformat:2 }}</li>
+            <li class="stat-min">{% trans "Минимум" %}: {{ electricity_stats.min|floatformat:2 }}</li>
+            <li class="stat-avg">{% trans "Среднее" %}: {{ electricity_stats.avg|floatformat:2 }}</li>
         </ul>
     </div>
     <div class="col">
         <h4>{% trans "Холодная вода (м³)" %}</h4>
         <ul>
-            <li>{% trans "Максимум" %}: {{ cold_water_stats.max|floatformat:2 }}</li>
-            <li>{% trans "Минимум" %}: {{ cold_water_stats.min|floatformat:2 }}</li>
-            <li>{% trans "Среднее" %}: {{ cold_water_stats.avg|floatformat:2 }}</li>
+            <li class="stat-max">{% trans "Максимум" %}: {{ cold_water_stats.max|floatformat:2 }}</li>
+            <li class="stat-min">{% trans "Минимум" %}: {{ cold_water_stats.min|floatformat:2 }}</li>
+            <li class="stat-avg">{% trans "Среднее" %}: {{ cold_water_stats.avg|floatformat:2 }}</li>
         </ul>
     </div>
     <div class="col">
         <h4>{% trans "Горячая вода (м³)" %}</h4>
         <ul>
-            <li>{% trans "Максимум" %}: {{ hot_water_stats.max|floatformat:2 }}</li>
-            <li>{% trans "Минимум" %}: {{ hot_water_stats.min|floatformat:2 }}</li>
-            <li>{% trans "Среднее" %}: {{ hot_water_stats.avg|floatformat:2 }}</li>
+            <li class="stat-max">{% trans "Максимум" %}: {{ hot_water_stats.max|floatformat:2 }}</li>
+            <li class="stat-min">{% trans "Минимум" %}: {{ hot_water_stats.min|floatformat:2 }}</li>
+            <li class="stat-avg">{% trans "Среднее" %}: {{ hot_water_stats.avg|floatformat:2 }}</li>
         </ul>
     </div>
 </div>
