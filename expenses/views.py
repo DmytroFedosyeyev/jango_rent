@@ -5,6 +5,7 @@ import calendar
 from decimal import Decimal, InvalidOperation
 from datetime import date, timedelta
 from calendar import monthrange
+from django.utils import timezone
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -616,36 +617,58 @@ def overview(request):
 
 @login_required
 def pay_all_expenses(request):
-    if request.method != 'POST':
-        return HttpResponseBadRequest("Некорректный запрос")
+    logger.debug(f"POST data: {request.POST}")
+    logger.debug(f"Session data: {request.session.items()}")
 
     try:
         amount = Decimal(request.POST.get('amount', '0.00'))
         payment_date = request.POST.get('payment_date')
-        start_date = request.session.get('filter_start_date')
-        end_date = request.session.get('filter_end_date')
-
         if amount <= 0 or not payment_date:
-            raise ValueError
-    except (ValueError, TypeError):
-        return HttpResponseBadRequest("Некорректная сумма или дата оплаты")
+            raise ValueError("Invalid amount or payment date")
+        payment_date = datetime.datetime.strptime(payment_date, '%Y-%m-%d').date()
+    except (ValueError, TypeError, InvalidOperation) as e:
+        logger.error(f"Invalid input: {str(e)}")
+        messages.error(request, "Неверный формат суммы или даты оплаты")
+        return redirect('expenses:home')
 
     user = request.user
     remaining = amount
     categories = ['rent', 'utilities', 'electricity']
+    distributed = Decimal('0.00')
 
-    # 1. Погашаем текущие расходы
-    for category in categories:
+    # Определяем период из сессии или текущий месяц
+    start_date = request.session.get('filter_start_date')
+    end_date = request.session.get('filter_end_date')
+
+    if not start_date or not end_date:
+        today = timezone.now().date()
+        year, month = today.year, today.month
+        logger.debug(f"No session dates, using current month: {year}-{month}")
+    else:
+        try:
+            start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()
+            year, month = start_date.year, start_date.month
+            logger.debug(f"Using session dates: {start_date} to {end_date}")
+        except ValueError:
+            logger.error("Invalid session date format")
+            messages.error(request, "Неверный формат дат фильтра")
+            return redirect('expenses:home')
+
+    with transaction.atomic():
+        # 1. Обрабатываем расходы за указанный месяц
         expenses = Expense.objects.filter(
             user=user,
-            category=category,
-            date__range=[start_date, end_date]
+            date__year=year,
+            date__month=month,
+            debt__gt=0
         ).order_by('date')
+        logger.debug(f"Found {expenses.count()} expenses for {year}-{month}")
 
         for expense in expenses:
             if remaining <= 0:
                 break
             to_pay = min(remaining, expense.debt)
+            logger.debug(f"Paying {to_pay} for expense {expense.id} ({expense.category})")
             expense.debt -= to_pay
             expense.payment_amount += to_pay
             if expense.debt <= 0:
@@ -654,64 +677,23 @@ def pay_all_expenses(request):
             expense.payment_date = payment_date
             expense.save()
             remaining -= to_pay
+            distributed += to_pay
+            logger.debug(f"Updated expense {expense.id}: debt={expense.debt}, paid={expense.paid}")
 
-    # 2. Закрываем долги за прошлые месяцы
-    if remaining > 0 and start_date:
-        past_expenses = Expense.objects.filter(
-            user=user,
-            date__lt=start_date,
-            debt__gt=0
-        ).order_by('date')
-
-        for expense in past_expenses:
-            if remaining <= 0:
-                break
-            to_pay = min(expense.debt, remaining)
-            expense.debt -= to_pay
-            expense.payment_amount += to_pay
-            if expense.debt <= 0:
-                expense.debt = Decimal('0.00')
-                expense.paid = True
-            expense.payment_date = payment_date
-            expense.save()
-            remaining -= to_pay
-
-    # 3. Перенос излишков на будущие месяцы (максимум на 24 месяца вперёд)
-    month_offset = 1
-    while remaining > 0 and month_offset <= 24:
-        next_month = (date.today().replace(day=1) + timedelta(days=32 * month_offset)).replace(day=1)
-
-        for category in categories:
-            if remaining <= 0:
-                break
-
-            # Пытаемся найти расход
-            expense = Expense.objects.filter(
+        # 2. Погашаем долги за прошлые месяцы
+        if remaining > 0:
+            past_expenses = Expense.objects.filter(
                 user=user,
-                category=category,
-                date__year=next_month.year,
-                date__month=next_month.month
-            ).first()
+                date__lt=date(year, month, 1),
+                debt__gt=0
+            ).order_by('date')
+            logger.debug(f"Found {past_expenses.count()} past expenses with debt")
 
-            if not expense and category == 'rent':
-                # Получаем актуальную ставку аренды
-                rent_rate = RentRate.objects.filter(
-                    user=user,
-                    start_date__lte=next_month
-                ).order_by('-start_date').first()
-
-                if rent_rate:
-                    expense = Expense.objects.create(
-                        user=user,
-                        category='rent',
-                        amount=rent_rate.amount,
-                        debt=rent_rate.amount,
-                        paid=False,
-                        date=next_month
-                    )
-
-            if expense:
-                to_pay = min(expense.debt, remaining)
+            for expense in past_expenses:
+                if remaining <= 0:
+                    break
+                to_pay = min(remaining, expense.debt)
+                logger.debug(f"Paying {to_pay} for past expense {expense.id} ({expense.category})")
                 expense.debt -= to_pay
                 expense.payment_amount += to_pay
                 if expense.debt <= 0:
@@ -720,21 +702,76 @@ def pay_all_expenses(request):
                 expense.payment_date = payment_date
                 expense.save()
                 remaining -= to_pay
-            else:
-                # если расходы не найдены и не аренда — не создаём, переносим остаток дальше
-                continue
+                distributed += to_pay
+                logger.debug(f"Updated past expense {expense.id}: debt={expense.debt}, paid={expense.paid}")
 
-        month_offset += 1
+        # 3. Переплата для аренды на будущие месяцы
+        if remaining > 0:
+            month_offset = 1
+            max_future_months = 24
+            while remaining > 0 and month_offset <= max_future_months:
+                next_month = (date(year, month, 1) + timedelta(days=32 * month_offset)).replace(day=1)
+                logger.debug(f"Processing future month: {next_month}")
 
-    # Сохраняем сессию фильтра и редиректим
+                expense = Expense.objects.filter(
+                    user=user,
+                    category='rent',
+                    date__year=next_month.year,
+                    date__month=next_month.month
+                ).first()
+
+                if not expense:
+                    rent_rate = RentRate.objects.filter(
+                        user=user,
+                        start_date__lte=next_month
+                    ).order_by('-start_date').first()
+                    if rent_rate:
+                        logger.debug(f"Creating new rent expense for {next_month}")
+                        expense = Expense.objects.create(
+                            user=user,
+                            category='rent',
+                            amount=rent_rate.amount,
+                            debt=rent_rate.amount,
+                            paid=False,
+                            date=next_month,
+                            payment_amount=Decimal('0.00')
+                        )
+
+                if expense:
+                    to_pay = min(remaining, expense.debt)
+                    logger.debug(f"Applying {to_pay} to future rent expense {expense.id}")
+                    expense.debt -= to_pay
+                    expense.payment_amount += to_pay
+                    if expense.debt <= 0:
+                        expense.debt = Decimal('0.00')
+                        expense.paid = True
+                    expense.payment_date = payment_date
+                    expense.save()
+                    remaining -= to_pay
+                    distributed += to_pay
+                    logger.debug(f"Updated future expense {expense.id}: debt={expense.debt}, paid={expense.paid}")
+                else:
+                    logger.debug(f"No rent rate for {next_month}, stopping")
+                    break
+
+                month_offset += 1
+
+    # Сообщение только если была распределена сумма
+    if distributed > 0 or remaining > 0:
+        messages.success(request, f"Оплата прошла. Распределено: {distributed:.2f} €. Остаток: {remaining:.2f} € перенесён.")
+        logger.info(f"Payment processed. Distributed: {distributed:.2f} €, Remaining: {remaining:.2f} €")
+    else:
+        messages.error(request, "Не найдено расходов для оплаты в указанном периоде.")
+        logger.warning("No expenses found to pay")
+
+    # Сохраняем даты в сессии
+    request.session['filter_start_date'] = date(year, month, 1).strftime('%Y-%m-%d')
+    _, last_day = monthrange(year, month)
+    request.session['filter_end_date'] = date(year, month, last_day).strftime('%Y-%m-%d')
+    request.session.modified = True
+
     if start_date and end_date:
-        request.session['filter_start_date'] = start_date
-        request.session['filter_end_date'] = end_date
-        request.session.modified = True
-
-    messages.success(request, f"Оплата прошла. Распределено: {amount - remaining:.2f} €. Остаток: {remaining:.2f} € перенесён.")
-    if start_date and end_date:
-        return redirect(f"{reverse('expenses:filter_expenses')}?start_date={start_date}&end_date={end_date}")
+        return redirect(f"{reverse('expenses:filter_expenses')}?start_date={year}-{month:02d}&end_date={year}-{month:02d}")
     return redirect('expenses:home')
 
 def register(request):
