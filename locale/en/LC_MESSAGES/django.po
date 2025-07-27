@@ -549,3 +549,21 @@ msgstr "Expenses for the period from"
 
 msgid "по"
 msgstr "to"
+
+msgid "Расход уже существует"
+msgstr "Expense already exists"
+
+msgid "Уже существует расход в категории <strong>%(category)s</strong> за <strong>%(date)s</strong>."
+msgstr "An expense already exists for category <strong>%(category)s</strong> in <strong>%(date)s</strong>."
+
+msgid "Сумма в базе: <strong>%(amount)s €</strong>"
+msgstr "Current amount: <strong>%(amount)s €</strong>"
+
+msgid "Вы хотите заменить её новой суммой: <strong>%(amount)s €</strong>?"
+msgstr "Do you want to replace it with the new amount: <strong>%(amount)s €</strong>?"
+
+msgid "Да, заменить"
+msgstr "Yes, replace"
+
+msgid "Отмена"
+msgstr "Cancel"

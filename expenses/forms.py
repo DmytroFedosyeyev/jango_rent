@@ -8,6 +8,11 @@ class ExpenseForm(forms.ModelForm):
  class Meta:
      model = Expense
      fields = ['category', 'amount', 'date',]
+     labels = {
+         'category': _('Категория'),
+         'amount': _('Сумма'),
+         'date': _('Дата'),
+     }
      widgets = {
          'date': forms.DateInput(attrs={'type': 'date'}),
          'category': forms.Select(),

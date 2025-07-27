@@ -4,9 +4,9 @@ from django.utils.translation import gettext_lazy as _
 
 class Expense(models.Model):
     CATEGORY_CHOICES = [
-        ('rent', 'Аренда'),
-        ('utilities', 'Коммунальные'),
-        ('electricity', 'Электричество'),
+        ('rent', _('Аренда')),
+        ('utilities', _('Коммунальные')),
+        ('electricity', _('Электричество')),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='expenses')

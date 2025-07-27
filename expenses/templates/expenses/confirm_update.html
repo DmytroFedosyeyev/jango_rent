@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+{% load i18n %}
 <style>
   .confirm-container {
     max-width: 600px;
@@ -52,21 +53,59 @@
   .btn:hover {
     opacity: 0.9;
   }
+
+  /* Новые стили для полей формы */
+  .confirm-container form p {
+    margin-bottom: 20px;
+    text-align: left;
+  }
+
+  .confirm-container form label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #555;
+    font-family: 'Segoe UI', sans-serif;
+  }
+
+  .confirm-container form input[type="text"],
+  .confirm-container form input[type="number"],
+  .confirm-container form input[type="date"],
+  .confirm-container form select {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', sans-serif;
+    transition: border-color 0.3s ease;
+  }
+
+  .confirm-container form input[type="text"]:focus,
+  .confirm-container form input[type="number"]:focus,
+  .confirm-container form input[type="date"]:focus,
+  .confirm-container form select:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 5px rgba(0,123,255,0.3);
+  }
 </style>
 
 <div class="confirm-container">
-  <h2>Расход уже существует</h2>
-  <p>Уже существует расход в категории <strong>{{ existing.category }}</strong> за <strong>{{ existing.date|date:"F Y" }}</strong>.</p>
-  <p>Сумма в базе: <strong>{{ existing.amount }} €</strong></p>
-  <p>Вы хотите заменить её новой суммой: <strong>{{ new_expense.amount }} €</strong>?</p>
+  <h2>{% trans "Расход уже существует" %}</h2>
+
+  <p>{% blocktrans with category=existing.category date=existing.date|date:"F Y" %}Уже существует расход в категории <strong>{{ category }}</strong> за <strong>{{ date }}</strong>.{% endblocktrans %}</p>
+  <p>{% blocktrans with amount=existing.amount %}Сумма в базе: <strong>{{ amount }} €</strong>{% endblocktrans %}</p>
+  <p>{% blocktrans with amount=new_expense.amount %}Вы хотите заменить её новой суммой: <strong>{{ amount }} €</strong>?{% endblocktrans %}</p>
 
   <form method="post">
     {% csrf_token %}
     <input type="hidden" name="form_type" value="expense">
     <input type="hidden" name="confirm_update" value="1">
     {{ expense_form.as_p }}
-    <button type="submit" class="btn btn-confirm">Да, заменить</button>
-    <a href="{% url 'expenses:add_expense' %}" class="btn btn-cancel">Отмена</a>
+    <button type="submit" class="btn btn-confirm">{% trans "Да, заменить" %}</button>
+    <a href="{% url 'expenses:add_expense' %}" class="btn btn-cancel">{% trans "Отмена" %}</a>
   </form>
 </div>
 {% endblock %}
