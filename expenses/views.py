@@ -125,7 +125,13 @@ def add_expense(request):
                 expense.payment_amount = Decimal('0.00')  # Инициализация обязательного поля
                 expense.save()
                 logger.debug(f"Expense saved: {expense}")
-                return redirect('expenses:home')
+                messages.success(request, "✅ Расход успешно добавлен.")
+                expense_form = ExpenseForm(prefix='expense')  # очистим форму
+                meter_form = MeterReadingForm(prefix='meter')  # тоже очистим
+                return render(request, 'add_expense.html', {
+                    'expense_form': expense_form,
+                    'meter_form': meter_form,
+                })
             else:
                 logger.warning(f"Expense form invalid: {expense_form.errors}")
                 meter_form = MeterReadingForm(prefix='meter')  # пустая форма счётчиков
