@@ -817,20 +817,36 @@ def pay_expense(request, category):
         amount = Decimal(amount)
         if amount <= 0:
             raise ValueError("Сумма оплаты должна быть положительной.")
-        payment_date = datetime.datetime.strptime(payment_date, '%Y-%m-%d').date()
+        payment_date = datetime.strptime(payment_date, '%Y-%m-%d').date()
     except ValueError:
         messages.error(request, "Неверный формат суммы или даты оплаты.")
         return redirect('expenses:home')
 
     # Период фильтра
-    start_date = request.session.get('filter_start_date')
-    end_date = request.session.get('filter_end_date')
+    selected_month = request.session.get('selected_month')
+    if selected_month:
+        try:
+            selected_date = datetime.strptime(selected_month, '%Y-%m-%d').date()
+            year, month = selected_date.year, selected_date.month
+            start_date = date(year, month, 1)
+            _, last_day = calendar.monthrange(year, month)
+            end_date = date(year, month, last_day)
+        except ValueError:
+            logger.error("Invalid selected_month format, using current month")
+            year, month = timezone.now().date().year, timezone.now().date().month
+            start_date = date(year, month, 1)
+            _, last_day = calendar.monthrange(year, month)
+            end_date = date(year, month, last_day)
+    else:
+        year, month = timezone.now().date().year, timezone.now().date().month
+        start_date = date(year, month, 1)
+        _, last_day = calendar.monthrange(year, month)
+        end_date = date(year, month, last_day)
     logger.debug(f"Filter dates: start_date={start_date}, end_date={end_date}")
 
     # Ищем существующую запись
     expenses = Expense.objects.filter(user=request.user, category=category)
-    if start_date and end_date:
-        expenses = expenses.filter(date__range=[start_date, end_date])
+    expenses = expenses.filter(date__range=[start_date, end_date])
     expense = expenses.first()
     logger.debug(f"Found expense: {expense}")
 
@@ -851,7 +867,7 @@ def pay_expense(request, category):
     logger.debug(f"After update: debt={expense.debt}, payment_amount={expense.payment_amount}, paid={expense.paid}, payment_date={expense.payment_date}")
 
     messages.success(request, f"Оплата для {category} на сумму {paid_part} € обработана.")
-    return redirect('expenses:home')  # Всегда редиректим на главную
+    return redirect(f"{reverse('expenses:filter_expenses')}?month={year}-{month:02d}-01")  # Остаёмся на странице фильтра
 
 @login_required
 @require_POST
