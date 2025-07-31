@@ -2,6 +2,7 @@ import os
 import logging
 import datetime
 import calendar
+import json
 from decimal import Decimal, InvalidOperation
 from datetime import date, timedelta, datetime
 from calendar import monthrange
@@ -18,6 +19,8 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import get_template
 from django.conf import settings
+from django.db import IntegrityError
+from django.utils.safestring import mark_safe
 
 from xhtml2pdf import pisa
 
@@ -156,6 +159,7 @@ def add_expense(request):
                         date=date_
                     )
                     logger.debug("Saved electricity reading.")
+                    save_monthly_usage(request.user, 'electricity', date_)
 
                 if cold_water_usage is not None:
                     MeterReading.objects.create(
@@ -165,6 +169,7 @@ def add_expense(request):
                         date=date_
                     )
                     logger.debug("Saved cold water reading.")
+                    save_monthly_usage(request.user, 'cold_water', date_)
 
                 if hot_water_usage is not None:
                     MeterReading.objects.create(
@@ -174,6 +179,7 @@ def add_expense(request):
                         date=date_
                     )
                     logger.debug("Saved hot water reading.")
+                    save_monthly_usage(request.user, 'hot_water', date_)
 
                 return redirect('expenses:home')
             else:
@@ -475,145 +481,86 @@ def overview(request):
     current_year = today.year
     current_month = today.month
 
-    # Агрегация расходов по категориям с января по текущий месяц, исключая 'all'
+    # Финансовые расходы
     category_expenses = Expense.objects.filter(
         user=user,
         date__year=current_year,
-        date__month__lte=current_month,
-        category__in=['rent', 'utilities', 'electricity']  # Исключаем категорию 'all'
-    ).values('category').annotate(
-        total_amount=Sum('amount')
-    )
+        category__in=['rent', 'utilities', 'electricity']
+    ).values('category').annotate(total_amount=Sum('amount'))
 
-    # Определяем желаемый порядок категорий
     desired_order = ['rent', 'utilities', 'electricity']
-
-    # Создаём словарь для быстрого доступа к данным категорий
     expenses_dict = {exp['category']: exp['total_amount'] or 0 for exp in category_expenses}
 
-    # Формируем список для шаблона в нужном порядке
-    expenses_by_category = []
-    for category in desired_order:
-        if category in expenses_dict:
-            expenses_by_category.append({
-                'category': category,
-                'category_display': CATEGORY_DISPLAY.get(category, category),
-                'total_amount': expenses_dict[category]
-            })
+    expenses_by_category = [
+        {
+            'category': category,
+            'category_display': CATEGORY_DISPLAY.get(category, category),
+            'total_amount': expenses_dict.get(category, 0)
+        } for category in desired_order
+    ]
 
-    # Добавляем строку "Всего"
-    total_year = Expense.objects.filter(
-        user=user,
-        date__year=current_year,
-        date__month__lte=current_month,
-        category__in=['rent', 'utilities', 'electricity']
-    ).aggregate(total=Sum('amount'))['total'] or 0
-
-    expenses_by_category.append({
-        'category': 'total',
-        'category_display': _('Всего'),
-        'total_amount': total_year
-    })
-
-    # Сумма за всё время
+    total_year = sum(exp['total_amount'] for exp in expenses_by_category)
     total_all_time = Expense.objects.filter(
         user=user,
-        category__in=['rent', 'utilities', 'electricity']
+        category__in=desired_order
     ).aggregate(total=Sum('amount'))['total'] or 0
 
+    # Список месяцев (преобразуем gettext_lazy в строки)
+    MONTHS = [
+        str(_('Янв')), str(_('Фев')), str(_('Мар')), str(_('Апр')),
+        str(_('Май')), str(_('Июн')), str(_('Июл')), str(_('Авг')),
+        str(_('Сен')), str(_('Окт')), str(_('Ноя')), str(_('Дек'))
+    ]
+
+    # Данные для графиков (только ненулевые usage)
     categories = ['electricity', 'cold_water', 'hot_water']
-    months = [date(current_year, m, 1) for m in range(1, 13)]
+    usage_data = {cat: {'months': [], 'values': []} for cat in categories}
 
-    readings = MeterReading.objects.filter(
+    for usage in MonthlyUsage.objects.filter(
         user=user,
-        date__lte=date(current_year, 12, 31),
-        category__in=categories
-    ).order_by('category', 'date')
+        year=current_year,
+        category__in=categories,
+        usage__gt=0  # Только ненулевые значения
+    ):
+        category = usage.category
+        month = usage.month - 1  # 0-based index
+        usage_data[category]['months'].append(MONTHS[month])
+        usage_data[category]['values'].append(float(usage.usage))
 
-    readings_by_cat = {cat: [] for cat in categories}
-    for r in readings:
-        readings_by_cat[r.category].append(r)
+    # Логирование
+    logger.debug("chart_months: %s", MONTHS)
+    logger.debug("electricity_data: %s", usage_data['electricity'])
+    logger.debug("cold_water_data: %s", usage_data['cold_water'])
+    logger.debug("hot_water_data: %s", usage_data['hot_water'])
 
-    from django.db import transaction
-
-    def process_category(category, user, current_year):
-        with transaction.atomic():
-            data = readings_by_cat[category]
-            filled = {}
-            raw = {(r.date.year, r.date.month): r for r in data}
-            all_keys = sorted(raw.keys())
-            if not all_keys:
-                return []
-            for i in range(len(all_keys) - 1):
-                (y1, m1), (y2, m2) = all_keys[i], all_keys[i + 1]
-                d1 = raw[(y1, m1)].date
-                d2 = raw[(y2, m2)].date
-                v1 = raw[(y1, m1)].value
-                v2 = raw[(y2, m2)].value
-                delta_months = (y2 - y1) * 12 + (m2 - m1)
-                if delta_months <= 1:
-                    continue
-                avg_increase = (v2 - v1) / delta_months
-                for j in range(1, delta_months):
-                    total_month = m1 + j
-                    new_year = y1 + (total_month - 1) // 12
-                    new_month = (total_month - 1) % 12 + 1
-                    _, last_day = monthrange(new_year, new_month)
-                    new_date = date(new_year, new_month, last_day)
-                    new_value = v1 + avg_increase * j
-                    new_reading = MeterReading.objects.create(
-                        user=user,
-                        category=category,
-                        value=round(new_value, 2),
-                        date=new_date
-                    )
-                    raw[(new_year, new_month)] = new_reading
-
-        sorted_keys = sorted([k for k in raw if k[0] == current_year])
-        usage = []
-        for i in range(len(sorted_keys)):
-            y, m = sorted_keys[i]
-            curr = raw[(y, m)]
-            prev_key = (y, m - 1) if m > 1 else (y - 1, 12)
-            if prev_key not in raw:
-                usage.append(0)
-                continue
-            prev = raw[prev_key]
-            diff = round(float(curr.value - prev.value), 2)
-            usage.append(diff if diff >= 0 else 0)
-        return usage
-
-    electricity_data = process_category('electricity', user, current_year)
-    cold_water_data = process_category('cold_water', user, current_year)
-    hot_water_data = process_category('hot_water', user, current_year)
-
-    def compute_stats(data):
-        filtered = [d for d in data if d > 0]
-        if not filtered:
-            return {'min': 0, 'max': 0, 'avg': 0}
+    def compute_stats(values):
+        clean = [v for v in values if v > 0]
         return {
-            'min': min(filtered),
-            'max': max(filtered),
-            'avg': round(sum(filtered) / len(filtered), 2),
+            'min': round(min(clean), 2) if clean else 0,
+            'max': round(max(clean), 2) if clean else 0,
+            'avg': round(sum(clean) / len(clean), 2) if clean else 0
         }
-
-    month_labels = MONTHS
 
     context = {
         'current_month': today.strftime('%B'),
         'current_year': current_year,
         'expenses_by_category': expenses_by_category,
-        'total_all_time': total_all_time,
         'total_year': total_year,
-        'chart_months': month_labels,
-        'electricity_data': electricity_data,
-        'cold_water_data': cold_water_data,
-        'hot_water_data': hot_water_data,
-        'electricity_stats': compute_stats(electricity_data),
-        'cold_water_stats': compute_stats(cold_water_data),
-        'hot_water_stats': compute_stats(hot_water_data),
+        'total_all_time': total_all_time,
+        'chart_months': MONTHS,
+        'electricity_months': usage_data['electricity']['months'],
+        'electricity_values': usage_data['electricity']['values'],
+        'cold_water_months': usage_data['cold_water']['months'],
+        'cold_water_values': usage_data['cold_water']['values'],
+        'hot_water_months': usage_data['hot_water']['months'],
+        'hot_water_values': usage_data['hot_water']['values'],
+        'electricity_stats': compute_stats(usage_data['electricity']['values']),
+        'cold_water_stats': compute_stats(usage_data['cold_water']['values']),
+        'hot_water_stats': compute_stats(usage_data['hot_water']['values']),
     }
+
     return render(request, 'overview.html', context)
+
 
 @login_required
 @require_POST
@@ -1014,3 +961,38 @@ def export_to_pdf(request):
     p.showPage()
     p.save()
     return response
+
+def save_monthly_usage(user, category, reading_date):
+    year = reading_date.year
+    month = reading_date.month
+
+    try:
+        current = MeterReading.objects.get(user=user, category=category, date=reading_date)
+    except MeterReading.DoesNotExist:
+        return
+
+    # Предыдущее показание
+    previous = (
+        MeterReading.objects.filter(user=user, category=category, date__lt=reading_date)
+        .order_by('-date')
+        .first()
+    )
+
+    if not previous:
+        # Нельзя вычислить расход — нет предыдущего значения
+        return
+
+    usage = float(current.value) - float(previous.value)
+    if usage < 0:
+        return  # Невозможно: счётчик не может уменьшиться
+
+    try:
+        MonthlyUsage.objects.update_or_create(
+            user=user,
+            category=category,
+            year=year,
+            month=month,
+            defaults={'usage': usage}
+        )
+    except IntegrityError:
+        pass  # на случай гонки данных

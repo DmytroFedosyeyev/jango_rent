@@ -3,19 +3,18 @@
 
 {% block extra_head %}
 <style>
-    .stat-max {
-        color: red;
-        font-weight: bold;
+    .stat-max { color: red; font-weight: bold; }
+    .stat-min { color: green; font-weight: bold; }
+    .stat-avg { color: blue; font-weight: bold; }
+    .chart-container {
+        position: relative;
+        height: 400px;
+        width: 100%;
+        margin-bottom: 2rem;
     }
-
-    .stat-min {
-        color: green;
-        font-weight: bold;
-    }
-
-    .stat-avg {
-        color: blue;
-        font-weight: bold;
+    .chart-container canvas {
+        width: 100% !important;
+        height: 100% !important;
     }
 </style>
 {% endblock %}
@@ -38,110 +37,155 @@
         <tbody>
             {% for expense in expenses_by_category %}
             <tr{% if expense.category == 'total' %} class="total-row"{% endif %}>
-                <td>{% if expense.category == 'total' %}<strong>{{ expense.category_display }}</strong>{% else %}{{ expense.category_display }}{% endif %}</td>
-                <td>{% if expense.category == 'total' %}<strong>{{ expense.total_amount|floatformat:2 }}</strong>{% else %}{{ expense.total_amount|floatformat:2 }}{% endif %}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="2">{% trans "Нет расходов за год" %}</td>
+                <td>{{ expense.category_display }}</td>
+                <td>{{ expense.total_amount|floatformat:2 }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
     <h3>{% trans "Графики потребления" %}</h3>
-    <div style="margin-bottom: 20px;">
+    <div class="chart-container">
         <h4>{% trans "Расход электроэнергии (кВт·ч)" %}</h4>
-        <canvas id="electricityChart" width="400" height="200"></canvas>
+        <canvas id="electricityChart"></canvas>
     </div>
-    <div>
+    <div class="chart-container">
         <h4>{% trans "Расход воды (м³)" %}</h4>
-        <canvas id="waterChart" width="400" height="200"></canvas>
+        <canvas id="waterChart"></canvas>
+    </div>
+
+    <!-- Отладочный вывод -->
+    <div style="margin-bottom: 20px;">
+        <p><strong>Debug:</strong> chart_months = {{ chart_months|safe }}</p>
+        <p><strong>Debug:</strong> electricity_months = {{ electricity_months|safe }}</p>
+        <p><strong>Debug:</strong> electricity_values = {{ electricity_values|safe }}</p>
+        <p><strong>Debug:</strong> cold_water_months = {{ cold_water_months|safe }}</p>
+        <p><strong>Debug:</strong> cold_water_values = {{ cold_water_values|safe }}</p>
+        <p><strong>Debug:</strong> hot_water_months = {{ hot_water_months|safe }}</p>
+        <p><strong>Debug:</strong> hot_water_values = {{ hot_water_values|safe }}</p>
+    </div>
+
+    <hr>
+    <h3>{% blocktrans %}Статистика потребления за {{ current_year }}{% endblocktrans %}</h3>
+    <div class="row">
+        <div class="col">
+            <h4>{% trans "Электричество (кВт·ч)" %}</h4>
+            <ul>
+                <li class="stat-max">{% trans "Максимум" %}: {{ electricity_stats.max|floatformat:2 }}</li>
+                <li class="stat-min">{% trans "Минимум" %}: {{ electricity_stats.min|floatformat:2 }}</li>
+                <li class="stat-avg">{% trans "Среднее" %}: {{ electricity_stats.avg|floatformat:2 }}</li>
+            </ul>
+        </div>
+        <div class="col">
+            <h4>{% trans "Холодная вода (м³)" %}</h4>
+            <ul>
+                <li class="stat-max">{% trans "Максимум" %}: {{ cold_water_stats.max|floatformat:2 }}</li>
+                <li class="stat-min">{% trans "Минимум" %}: {{ cold_water_stats.min|floatformat:2 }}</li>
+                <li class="stat-avg">{% trans "Среднее" %}: {{ cold_water_stats.avg|floatformat:2 }}</li>
+            </ul>
+        </div>
+        <div class="col">
+            <h4>{% trans "Горячая вода (м³)" %}</h4>
+            <ul>
+                <li class="stat-max">{% trans "Максимум" %}: {{ hot_water_stats.max|floatformat:2 }}</li>
+                <li class="stat-min">{% trans "Минимум" %}: {{ hot_water_stats.min|floatformat:2 }}</li>
+                <li class="stat-avg">{% trans "Среднее" %}: {{ hot_water_stats.avg|floatformat:2 }}</li>
+            </ul>
+        </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 <script>
-    // График электроэнергии
+document.addEventListener('DOMContentLoaded', function() {
+    const months = {{ chart_months|safe }};
+    const electricityMonths = {{ electricity_months|safe }};
+    const electricityValues = {{ electricity_values|safe }};
+    const coldWaterMonths = {{ cold_water_months|safe }};
+    const coldWaterValues = {{ cold_water_values|safe }};
+    const hotWaterMonths = {{ hot_water_months|safe }};
+    const hotWaterValues = {{ hot_water_values|safe }};
+
+    console.log('chart_months:', months);
+    console.log('electricity:', { months: electricityMonths, values: electricityValues });
+    console.log('cold_water:', { months: coldWaterMonths, values: coldWaterValues });
+    console.log('hot_water:', { months: hotWaterMonths, values: hotWaterValues });
+
+    // Электричество
     new Chart(document.getElementById('electricityChart'), {
-        type: 'bar',
+        type: 'line',
         data: {
-            labels: {{ chart_months|safe }},
+            labels: months,
             datasets: [{
                 label: '{% trans "Электричество (кВт·ч)" %}',
-                data: {{ electricity_data|safe }},
-                backgroundColor: '#007bff',
+                data: months.map(month => electricityMonths.includes(month) ? electricityValues[electricityMonths.indexOf(month)] : null),
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                tension: 0.3,
+                fill: false,
+                pointRadius: 5,
+                spanGaps: false
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: false,
             scales: {
                 y: {
                     beginAtZero: true,
+                    max: 200,
                     title: { display: true, text: '{% trans "кВт·ч" %}' }
+                },
+                x: {
+                    title: { display: true, text: '{% trans "Месяц" %}' }
                 }
             }
         }
     });
 
-    // График воды
+    // Вода
     new Chart(document.getElementById('waterChart'), {
         type: 'line',
         data: {
-            labels: {{ chart_months|safe }},
+            labels: months,
             datasets: [
                 {
                     label: '{% trans "Холодная вода (м³)" %}',
-                    data: {{ cold_water_data|safe }},
-                    borderColor: '#007bff',
-                    fill: false
+                    data: months.map(month => coldWaterMonths.includes(month) ? coldWaterValues[coldWaterMonths.indexOf(month)] : null),
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    tension: 0.3,
+                    fill: false,
+                    pointRadius: 5,
+                    spanGaps: false
                 },
                 {
                     label: '{% trans "Горячая вода (м³)" %}',
-                    data: {{ hot_water_data|safe }},
-                    borderColor: '#dc3545',
-                    fill: false
+                    data: months.map(month => hotWaterMonths.includes(month) ? hotWaterValues[hotWaterMonths.indexOf(month)] : null),
+                    borderColor: 'rgb(255, 159, 64)',
+                    backgroundColor: 'rgba(255, 159, 64, 0.1)',
+                    tension: 0.3,
+                    fill: false,
+                    pointRadius: 5,
+                    spanGaps: false
                 }
             ]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: false,
             scales: {
                 y: {
                     beginAtZero: true,
+                    max: 10,
                     title: { display: true, text: '{% trans "м³" %}' }
+                },
+                x: {
+                    title: { display: true, text: '{% trans "Месяц" %}' }
                 }
             }
         }
     });
+});
 </script>
-
-<hr>
-<h3>{% blocktrans %}Статистика потребления за {{ current_year }}{% endblocktrans %}</h3>
-
-<div class="row">
-    <div class="col">
-        <h4>{% trans "Электричество (кВт·ч)" %}</h4>
-        <ul>
-            <li class="stat-max">{% trans "Максимум" %}: {{ electricity_stats.max|floatformat:2 }}</li>
-            <li class="stat-min">{% trans "Минимум" %}: {{ electricity_stats.min|floatformat:2 }}</li>
-            <li class="stat-avg">{% trans "Среднее" %}: {{ electricity_stats.avg|floatformat:2 }}</li>
-        </ul>
-    </div>
-    <div class="col">
-        <h4>{% trans "Холодная вода (м³)" %}</h4>
-        <ul>
-            <li class="stat-max">{% trans "Максимум" %}: {{ cold_water_stats.max|floatformat:2 }}</li>
-            <li class="stat-min">{% trans "Минимум" %}: {{ cold_water_stats.min|floatformat:2 }}</li>
-            <li class="stat-avg">{% trans "Среднее" %}: {{ cold_water_stats.avg|floatformat:2 }}</li>
-        </ul>
-    </div>
-    <div class="col">
-        <h4>{% trans "Горячая вода (м³)" %}</h4>
-        <ul>
-            <li class="stat-max">{% trans "Максимум" %}: {{ hot_water_stats.max|floatformat:2 }}</li>
-            <li class="stat-min">{% trans "Минимум" %}: {{ hot_water_stats.min|floatformat:2 }}</li>
-            <li class="stat-avg">{% trans "Среднее" %}: {{ hot_water_stats.avg|floatformat:2 }}</li>
-        </ul>
-    </div>
-</div>
-
 {% endblock %}
