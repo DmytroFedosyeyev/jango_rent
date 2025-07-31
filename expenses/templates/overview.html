@@ -54,17 +54,6 @@
         <canvas id="waterChart"></canvas>
     </div>
 
-    <!-- Отладочный вывод -->
-    <div style="margin-bottom: 20px;">
-        <p><strong>Debug:</strong> chart_months = {{ chart_months|safe }}</p>
-        <p><strong>Debug:</strong> electricity_months = {{ electricity_months|safe }}</p>
-        <p><strong>Debug:</strong> electricity_values = {{ electricity_values|safe }}</p>
-        <p><strong>Debug:</strong> cold_water_months = {{ cold_water_months|safe }}</p>
-        <p><strong>Debug:</strong> cold_water_values = {{ cold_water_values|safe }}</p>
-        <p><strong>Debug:</strong> hot_water_months = {{ hot_water_months|safe }}</p>
-        <p><strong>Debug:</strong> hot_water_values = {{ hot_water_values|safe }}</p>
-    </div>
-
     <hr>
     <h3>{% blocktrans %}Статистика потребления за {{ current_year }}{% endblocktrans %}</h3>
     <div class="row">
@@ -111,6 +100,10 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('cold_water:', { months: coldWaterMonths, values: coldWaterValues });
     console.log('hot_water:', { months: hotWaterMonths, values: hotWaterValues });
 
+    // Динамический max для осей Y
+    const electricityMax = Math.max(...electricityValues, 100) * 1.2;
+    const waterMax = Math.max(...coldWaterValues.concat(hotWaterValues), 5) * 1.2;
+
     // Электричество
     new Chart(document.getElementById('electricityChart'), {
         type: 'line',
@@ -121,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 data: months.map(month => electricityMonths.includes(month) ? electricityValues[electricityMonths.indexOf(month)] : null),
                 borderColor: 'rgb(255, 99, 132)',
                 backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                tension: 0.3,
+                tension: 0,
                 fill: false,
                 pointRadius: 5,
                 spanGaps: false
@@ -133,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 200,
+                    max: electricityMax,
                     title: { display: true, text: '{% trans "кВт·ч" %}' }
                 },
                 x: {
@@ -154,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     data: months.map(month => coldWaterMonths.includes(month) ? coldWaterValues[coldWaterMonths.indexOf(month)] : null),
                     borderColor: 'rgb(54, 162, 235)',
                     backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                    tension: 0.3,
+                    tension: 0,
                     fill: false,
                     pointRadius: 5,
                     spanGaps: false
@@ -162,9 +155,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 {
                     label: '{% trans "Горячая вода (м³)" %}',
                     data: months.map(month => hotWaterMonths.includes(month) ? hotWaterValues[hotWaterMonths.indexOf(month)] : null),
-                    borderColor: 'rgb(255, 159, 64)',
-                    backgroundColor: 'rgba(255, 159, 64, 0.1)',
-                    tension: 0.3,
+                    borderColor: 'rgb(255, 0, 0)', // Красный цвет для линии
+                    backgroundColor: 'rgba(255, 0, 0, 0.1)', // Красный фон для точек
+                    tension: 0,
                     fill: false,
                     pointRadius: 5,
                     spanGaps: false
@@ -177,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 10,
+                    max: waterMax,
                     title: { display: true, text: '{% trans "м³" %}' }
                 },
                 x: {

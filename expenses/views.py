@@ -527,12 +527,6 @@ def overview(request):
         usage_data[category]['months'].append(MONTHS[month])
         usage_data[category]['values'].append(float(usage.usage))
 
-    # Логирование
-    logger.debug("chart_months: %s", MONTHS)
-    logger.debug("electricity_data: %s", usage_data['electricity'])
-    logger.debug("cold_water_data: %s", usage_data['cold_water'])
-    logger.debug("hot_water_data: %s", usage_data['hot_water'])
-
     def compute_stats(values):
         clean = [v for v in values if v > 0]
         return {
