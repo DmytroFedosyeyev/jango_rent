@@ -7,6 +7,7 @@ from decimal import Decimal, InvalidOperation
 from datetime import date, timedelta, datetime
 from calendar import monthrange
 from django.utils import timezone
+from decimal import Decimal
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -564,20 +565,17 @@ def pay_all_expenses(request):
 
     try:
         amount = Decimal(request.POST.get('amount', '0.00'))
-        payment_date = request.POST.get('payment_date')
-        if amount <= 0 or not payment_date:
-            raise ValueError("Invalid amount or payment date")
-        payment_date = datetime.strptime(payment_date, '%Y-%m-%d').date()
+        if amount <= 0:
+            raise ValueError("Amount must be positive")
     except (ValueError, TypeError, InvalidOperation) as e:
         logger.error(f"Invalid input: {str(e)}")
-        messages.error(request, "Неверный формат суммы или даты оплаты")
+        messages.error(request, "Неверный формат суммы")
         return redirect('expenses:home')
 
     user = request.user
     remaining = amount
     distributed = Decimal('0.00')
 
-    # Определяем период из selected_month
     selected_month = request.session.get('selected_month')
     if selected_month:
         try:
@@ -591,14 +589,19 @@ def pay_all_expenses(request):
         year, month = timezone.now().date().year, timezone.now().date().month
         logger.debug(f"No selected_month, using current month: {year}-{month}")
 
-    # Устанавливаем даты для всего месяца
     start_date = date(year, month, 1)
     _, last_day = monthrange(year, month)
     end_date = date(year, month, last_day)
     logger.debug(f"Processing period: {start_date} to {end_date}")
 
+    # ИСПРАВЛЕНО: Приводим default_amounts к Decimal
+    default_amounts = {
+        'rent': Decimal('400.00'),
+        'utilities': Decimal('150.00'),
+        'electricity': Decimal('50.00')
+    }
+
     with transaction.atomic():
-        # 1. Обрабатываем расходы за указанный месяц в порядке приоритета
         categories = ['rent', 'utilities', 'electricity']
         for category in categories:
             expenses = Expense.objects.filter(
@@ -616,17 +619,16 @@ def pay_all_expenses(request):
                 to_pay = min(remaining, expense.debt)
                 logger.debug(f"Paying {to_pay} for expense {expense.id} ({expense.category})")
                 expense.debt -= to_pay
-                expense.payment_amount += to_pay
+                expense.payment_amount += Decimal(str(to_pay))  # ← уже было исправлено
                 if expense.debt <= 0:
                     expense.debt = Decimal('0.00')
                     expense.paid = True
-                expense.payment_date = payment_date
+                expense.payment_date = start_date
                 expense.save()
                 remaining -= to_pay
                 distributed += to_pay
                 logger.debug(f"Updated expense {expense.id}: debt={expense.debt}, paid={expense.paid}")
 
-        # 2. Погашаем долги за прошлые месяцы в порядке приоритета
         if remaining > 0:
             for category in categories:
                 past_expenses = Expense.objects.filter(
@@ -643,79 +645,79 @@ def pay_all_expenses(request):
                     to_pay = min(remaining, expense.debt)
                     logger.debug(f"Paying {to_pay} for past expense {expense.id} ({expense.category})")
                     expense.debt -= to_pay
-                    expense.payment_amount += to_pay
+                    expense.payment_amount += Decimal(str(to_pay))  # ✅ ИСПРАВЛЕНО
                     if expense.debt <= 0:
                         expense.debt = Decimal('0.00')
                         expense.paid = True
-                    expense.payment_date = payment_date
+                    expense.payment_date = start_date
                     expense.save()
                     remaining -= to_pay
                     distributed += to_pay
                     logger.debug(f"Updated past expense {expense.id}: debt={expense.debt}, paid={expense.paid}")
 
-        # 3. Переплата для аренды на будущие месяцы
         if remaining > 0:
             month_offset = 1
-            max_future_months = 24
+            max_future_months = 12
             while remaining > 0 and month_offset <= max_future_months:
-                # Вычисляем следующий месяц
                 next_year = year + (month + month_offset - 1) // 12
                 next_month_num = (month + month_offset - 1) % 12 + 1
                 next_month = date(next_year, next_month_num, 1)
                 logger.debug(f"Processing future month: {next_month}")
 
-                expense = Expense.objects.filter(
-                    user=user,
-                    category='rent',
-                    date__year=next_month.year,
-                    date__month=next_month.month
-                ).first()
-
-                if not expense:
-                    rent_rate = RentRate.objects.filter(
+                for category in categories:
+                    if remaining <= 0:
+                        break
+                    expense = Expense.objects.filter(
                         user=user,
-                        start_date__lte=next_month
-                    ).order_by('-start_date').first()
-                    if rent_rate:
-                        logger.debug(f"Creating new rent expense for {next_month}")
+                        category=category,
+                        date__year=next_month.year,
+                        date__month=next_month.month
+                    ).first()
+
+                    if not expense:
+                        if category == 'rent':
+                            rent_rate = RentRate.objects.filter(
+                                user=user,
+                                start_date__lte=next_month
+                            ).order_by('-start_date').first()
+                            amount = rent_rate.amount if rent_rate else default_amounts[category]
+                        else:
+                            amount = default_amounts[category]
+                        logger.debug(f"Creating new {category} expense for {next_month}")
                         expense = Expense.objects.create(
                             user=user,
-                            category='rent',
-                            amount=rent_rate.amount,
-                            debt=rent_rate.amount,
+                            category=category,
+                            amount=amount,
+                            debt=amount,
                             paid=False,
                             date=next_month,
                             payment_amount=Decimal('0.00')
                         )
 
-                if expense:
-                    to_pay = min(remaining, expense.debt)
-                    logger.debug(f"Applying {to_pay} to future rent expense {expense.id}")
-                    expense.debt -= to_pay
-                    expense.payment_amount += to_pay
-                    if expense.debt <= 0:
-                        expense.debt = Decimal('0.00')
-                        expense.paid = True
-                    expense.payment_date = payment_date
-                    expense.save()
-                    remaining -= to_pay
-                    distributed += to_pay
-                    logger.debug(f"Updated future expense {expense.id}: debt={expense.debt}, paid={expense.paid}")
-                else:
-                    logger.debug(f"No rent rate for {next_month}, stopping")
-                    break
+                    if expense and not expense.paid:
+                        # ✅ ИСПРАВЛЕНО: Преобразуем к Decimal перед операциями
+                        to_pay = Decimal(str(min(remaining, expense.debt)))
+                        logger.debug(f"Applying {to_pay} to future {category} expense {expense.id}")
+                        expense.debt -= to_pay
+                        expense.payment_amount += to_pay
+                        if expense.debt <= 0:
+                            expense.debt = Decimal('0.00')
+                            expense.paid = True
+                        expense.payment_date = next_month
+                        expense.save()
+                        remaining -= to_pay
+                        distributed += to_pay
+                        logger.debug(f"Updated future expense {expense.id}: debt={expense.debt}, paid={expense.paid}")
 
                 month_offset += 1
 
-    # Сообщение только если была распределена сумма
     if distributed > 0:
-        messages.success(request, f"Оплата прошла. Распределено: {distributed:.2f} €. Остаток: {remaining:.2f} € перенесён.")
+        messages.success(request, f"Оплата прошла. Распределено: {distributed:.2f} €. Остаток: {remaining:.2f} €.")
         logger.info(f"Payment processed. Distributed: {distributed:.2f} €, Remaining: {remaining:.2f} €")
     else:
         messages.error(request, "Не найдено расходов для оплаты в указанном периоде.")
         logger.warning("No expenses found to pay")
 
-    # Сохраняем даты в сессии
     request.session['filter_start_date'] = start_date.strftime('%Y-%m-%d')
     request.session['filter_end_date'] = end_date.strftime('%Y-%m-%d')
     request.session['selected_month'] = start_date.strftime('%Y-%m-01')
@@ -990,3 +992,25 @@ def save_monthly_usage(user, category, reading_date):
         )
     except IntegrityError:
         pass  # на случай гонки данных
+
+
+@login_required
+def meter_reading_list(request):
+    readings = MeterReading.objects.filter(user=request.user).order_by('-date', 'category')
+    return render(request, 'expenses/edit_all_data.html', {'readings': readings})
+
+
+@login_required
+def edit_meter_reading(request, reading_id):
+    reading = get_object_or_404(MeterReading, id=reading_id, user=request.user)
+
+    if request.method == 'POST':
+        form = MeterReadingForm(request.POST, instance=reading)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Показания успешно обновлены.')
+            return redirect('expenses:meter_reading_list')
+    else:
+        form = MeterReadingForm(instance=reading)
+
+    return render(request, 'expenses/edit_all_data.html', {'form': form, 'reading': reading})
