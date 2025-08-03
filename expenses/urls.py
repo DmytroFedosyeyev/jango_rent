@@ -16,5 +16,5 @@ urlpatterns = [
     path('month/<int:year>/<int:month>/', views.monthly_expenses, name='monthly_expenses'),
     path('export/pdf/', views.export_to_pdf, name='export_to_pdf'),
     path('readings/', views.meter_reading_list, name='meter_readings_list'),
-    path('readings/edit/<int:pk>/', views.edit_meter_reading, name='edit_all_data'),
+    path('readings/edit/<int:pk>/', views.edit_all_list, name='edit_meter_reading'),
 ]

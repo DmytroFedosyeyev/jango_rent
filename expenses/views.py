@@ -72,7 +72,7 @@ def add_expense(request):
         logger.debug(f"POST request received with form_type: {form_type}")
         logger.debug(f"POST data: {request.POST}")
 
-        # Инициализируем обе формы, но валидируем только нужную
+        # Инициализируем обе формы
         expense_form = ExpenseForm(request.POST, prefix='expense')
         meter_form = MeterReadingForm(request.POST, prefix='meter')
 
@@ -111,35 +111,22 @@ def add_expense(request):
                     messages.success(request, "Расход обновлён.")
                     return redirect('expenses:home')
 
-                # Аренда — устанавливаем ставку
-                if expense.category == 'rent':
-                    rent_rate = RentRate.objects.filter(
-                        user=request.user,
-                        start_date__lte=expense.date
-                    ).order_by('-start_date').first()
-
-                    if rent_rate:
-                        logger.debug(f"Found rent rate: {rent_rate.amount} for date {expense.date}")
-                        expense.amount = rent_rate.amount
-                    else:
-                        logger.warning("No rent rate found. Redirecting back.")
-                        messages.warning(request, 'Не найдена ставка аренды. Добавьте её в RentRate.')
-                        return redirect('expenses:add_expense')
-
+                # Сохраняем расход без проверки RentRate
                 expense.debt = expense.amount if not expense.paid else Decimal('0.00')
-                expense.payment_amount = Decimal('0.00')  # Инициализация обязательного поля
+                expense.payment_amount = Decimal('0.00')
                 expense.save()
                 logger.debug(f"Expense saved: {expense}")
                 messages.success(request, "✅ Расход успешно добавлен.")
-                expense_form = ExpenseForm(prefix='expense')  # очистим форму
-                meter_form = MeterReadingForm(prefix='meter')  # тоже очистим
+                expense_form = ExpenseForm(prefix='expense')  # Очистим форму
+                meter_form = MeterReadingForm(prefix='meter')  # Очистим форму
                 return render(request, 'add_expense.html', {
                     'expense_form': expense_form,
                     'meter_form': meter_form,
                 })
             else:
                 logger.warning(f"Expense form invalid: {expense_form.errors}")
-                meter_form = MeterReadingForm(prefix='meter')  # пустая форма счётчиков
+                messages.error(request, "Ошибка в форме расхода.")
+                meter_form = MeterReadingForm(prefix='meter')
 
         elif form_type == 'meter':
             logger.debug("Handling meter reading form submission.")
@@ -182,13 +169,16 @@ def add_expense(request):
                     logger.debug("Saved hot water reading.")
                     save_monthly_usage(request.user, 'hot_water', date_)
 
+                messages.success(request, "✅ Показания счётчиков успешно добавлены.")
                 return redirect('expenses:home')
             else:
                 logger.warning(f"Meter form invalid: {meter_form.errors}")
-                expense_form = ExpenseForm(prefix='expense')  # пустая форма расходов
+                messages.error(request, "Ошибка в форме показаний.")
+                expense_form = ExpenseForm(prefix='expense')
 
         else:
             logger.warning("form_type not specified or invalid.")
+            messages.error(request, "Неверный тип формы.")
             expense_form = ExpenseForm(prefix='expense')
             meter_form = MeterReadingForm(prefix='meter')
 
@@ -565,18 +555,23 @@ def pay_all_expenses(request):
 
     try:
         amount = Decimal(request.POST.get('amount', '0.00'))
+        payment_date = request.POST.get('payment_date')
         if amount <= 0:
             raise ValueError("Amount must be positive")
+        if not payment_date:
+            raise ValueError("Payment date is required")
+        payment_date = datetime.strptime(payment_date, '%Y-%m-%d').date()
     except (ValueError, TypeError, InvalidOperation) as e:
         logger.error(f"Invalid input: {str(e)}")
-        messages.error(request, "Неверный формат суммы")
+        messages.error(request, "Неверный формат суммы или даты")
         return redirect('expenses:home')
 
     user = request.user
     remaining = amount
     distributed = Decimal('0.00')
 
-    selected_month = request.session.get('selected_month')
+    # Получаем текущий месяц из сессии или POST
+    selected_month = request.POST.get('month') or request.session.get('selected_month')
     if selected_month:
         try:
             selected_date = datetime.strptime(selected_month, '%Y-%m-%d').date()
@@ -592,136 +587,54 @@ def pay_all_expenses(request):
     start_date = date(year, month, 1)
     _, last_day = monthrange(year, month)
     end_date = date(year, month, last_day)
-    logger.debug(f"Processing period: {start_date} to {end_date}")
-
-    # ИСПРАВЛЕНО: Приводим default_amounts к Decimal
-    default_amounts = {
-        'rent': Decimal('400.00'),
-        'utilities': Decimal('150.00'),
-        'electricity': Decimal('50.00')
-    }
+    logger.debug(f"Starting period: {start_date} to {end_date}")
 
     with transaction.atomic():
+        # Категории в порядке приоритета
         categories = ['rent', 'utilities', 'electricity']
-        for category in categories:
-            expenses = Expense.objects.filter(
-                user=user,
-                date__year=year,
-                date__month=month,
-                category=category,
-                debt__gt=0
-            ).order_by('date')
-            logger.debug(f"Found {expenses.count()} {category} expenses for {year}-{month}")
+        # Обрабатываем все долги, начиная с самого раннего
+        expenses = Expense.objects.filter(
+            user=user,
+            debt__gt=0
+        ).order_by('date')
 
-            for expense in expenses:
-                if remaining <= 0:
-                    break
-                to_pay = min(remaining, expense.debt)
-                logger.debug(f"Paying {to_pay} for expense {expense.id} ({expense.category})")
-                expense.debt -= to_pay
-                expense.payment_amount += Decimal(str(to_pay))  # ← уже было исправлено
-                if expense.debt <= 0:
-                    expense.debt = Decimal('0.00')
-                    expense.paid = True
-                expense.payment_date = start_date
-                expense.save()
-                remaining -= to_pay
-                distributed += to_pay
-                logger.debug(f"Updated expense {expense.id}: debt={expense.debt}, paid={expense.paid}")
+        for expense in expenses:
+            if remaining <= 0:
+                break
+            # Проверяем приоритет категории
+            if expense.category not in categories:
+                continue
+            to_pay = min(remaining, expense.debt)
+            logger.debug(f"Paying {to_pay} for expense {expense.id} ({expense.category}, {expense.date})")
+            expense.debt -= to_pay
+            expense.payment_amount += to_pay
+            if expense.debt <= 0:
+                expense.debt = Decimal('0.00')
+                expense.paid = True
+            expense.payment_date = payment_date
+            expense.save()
+            remaining -= to_pay
+            distributed += to_pay
+            logger.debug(f"Updated expense {expense.id}: debt={expense.debt}, paid={expense.paid}")
 
+        # Сохраняем переплату в сессии
         if remaining > 0:
-            for category in categories:
-                past_expenses = Expense.objects.filter(
-                    user=user,
-                    date__lt=start_date,
-                    category=category,
-                    debt__gt=0
-                ).order_by('date')
-                logger.debug(f"Found {past_expenses.count()} past {category} expenses with debt")
+            logger.debug(f"Overpayment remaining: {remaining}")
+            request.session['overpayment'] = float(remaining)
+            messages.success(request, f"Оплата прошла. Распределено: {distributed:.2f} €. У вас {remaining:.2f} € в плюсе.")
+        else:
+            request.session['overpayment'] = 0.0
+            messages.success(request, f"Оплата прошла. Распределено: {distributed:.2f} €.")
 
-                for expense in past_expenses:
-                    if remaining <= 0:
-                        break
-                    to_pay = min(remaining, expense.debt)
-                    logger.debug(f"Paying {to_pay} for past expense {expense.id} ({expense.category})")
-                    expense.debt -= to_pay
-                    expense.payment_amount += Decimal(str(to_pay))  # ✅ ИСПРАВЛЕНО
-                    if expense.debt <= 0:
-                        expense.debt = Decimal('0.00')
-                        expense.paid = True
-                    expense.payment_date = start_date
-                    expense.save()
-                    remaining -= to_pay
-                    distributed += to_pay
-                    logger.debug(f"Updated past expense {expense.id}: debt={expense.debt}, paid={expense.paid}")
+        # Обновляем сессию
+        request.session['filter_start_date'] = start_date.strftime('%Y-%m-%d')
+        request.session['filter_end_date'] = end_date.strftime('%Y-%m-%d')
+        request.session['selected_month'] = start_date.strftime('%Y-%m-01')
+        request.session.modified = True
 
-        if remaining > 0:
-            month_offset = 1
-            max_future_months = 12
-            while remaining > 0 and month_offset <= max_future_months:
-                next_year = year + (month + month_offset - 1) // 12
-                next_month_num = (month + month_offset - 1) % 12 + 1
-                next_month = date(next_year, next_month_num, 1)
-                logger.debug(f"Processing future month: {next_month}")
-
-                for category in categories:
-                    if remaining <= 0:
-                        break
-                    expense = Expense.objects.filter(
-                        user=user,
-                        category=category,
-                        date__year=next_month.year,
-                        date__month=next_month.month
-                    ).first()
-
-                    if not expense:
-                        if category == 'rent':
-                            rent_rate = RentRate.objects.filter(
-                                user=user,
-                                start_date__lte=next_month
-                            ).order_by('-start_date').first()
-                            amount = rent_rate.amount if rent_rate else default_amounts[category]
-                        else:
-                            amount = default_amounts[category]
-                        logger.debug(f"Creating new {category} expense for {next_month}")
-                        expense = Expense.objects.create(
-                            user=user,
-                            category=category,
-                            amount=amount,
-                            debt=amount,
-                            paid=False,
-                            date=next_month,
-                            payment_amount=Decimal('0.00')
-                        )
-
-                    if expense and not expense.paid:
-                        # ✅ ИСПРАВЛЕНО: Преобразуем к Decimal перед операциями
-                        to_pay = Decimal(str(min(remaining, expense.debt)))
-                        logger.debug(f"Applying {to_pay} to future {category} expense {expense.id}")
-                        expense.debt -= to_pay
-                        expense.payment_amount += to_pay
-                        if expense.debt <= 0:
-                            expense.debt = Decimal('0.00')
-                            expense.paid = True
-                        expense.payment_date = next_month
-                        expense.save()
-                        remaining -= to_pay
-                        distributed += to_pay
-                        logger.debug(f"Updated future expense {expense.id}: debt={expense.debt}, paid={expense.paid}")
-
-                month_offset += 1
-
-    if distributed > 0:
-        messages.success(request, f"Оплата прошла. Распределено: {distributed:.2f} €. Остаток: {remaining:.2f} €.")
-        logger.info(f"Payment processed. Distributed: {distributed:.2f} €, Remaining: {remaining:.2f} €")
-    else:
-        messages.error(request, "Не найдено расходов для оплаты в указанном периоде.")
+    if distributed == 0:
+        messages.error(request, "Не найдено расходов для оплаты.")
         logger.warning("No expenses found to pay")
-
-    request.session['filter_start_date'] = start_date.strftime('%Y-%m-%d')
-    request.session['filter_end_date'] = end_date.strftime('%Y-%m-%d')
-    request.session['selected_month'] = start_date.strftime('%Y-%m-01')
-    request.session.modified = True
 
     return redirect(f"{reverse('expenses:filter_expenses')}?month={year}-{month:02d}")
 
@@ -997,11 +910,11 @@ def save_monthly_usage(user, category, reading_date):
 @login_required
 def meter_reading_list(request):
     readings = MeterReading.objects.filter(user=request.user).order_by('-date', 'category')
-    return render(request, 'expenses/edit_all_data.html', {'readings': readings})
+    return render(request, 'expenses/meter_reading_list.html', {'readings': readings})
 
 
 @login_required
-def edit_meter_reading(request, reading_id):
+def edit_all_list(request, reading_id):
     reading = get_object_or_404(MeterReading, id=reading_id, user=request.user)
 
     if request.method == 'POST':
