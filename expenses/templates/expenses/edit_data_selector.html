@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .edit-form-container {
+        max-width: 500px;
+        margin: 40px auto;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+    }
+
+    .edit-form-container h2 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .edit-form-container form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .edit-form-container label {
+        font-weight: bold;
+    }
+
+    .edit-form-container select,
+    .edit-form-container button {
+        padding: 8px;
+        font-size: 1rem;
+        border-radius: 4px;
+        border: 1px solid #aaa;
+    }
+
+    .edit-form-container button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+
+    .edit-form-container button:hover {
+        background-color: #0056b3;
+    }
+</style>
+
+<div class="edit-form-container">
+    <h2>Редактировать данные</h2>
+    <form method="get" action="{% url 'expenses:edit_data_view' %}">
+        <label for="year">Год:</label>
+        <select name="year" id="year">
+            {% for y in years %}
+            <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="month">Месяц (опционально):</label>
+        <select name="month" id="month">
+            <option value="">---</option>
+            {% for number, name in months %}
+            <option value="{{ number }}">{{ name }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">OK</button>
+    </form>
+</div>
+{% endblock %}

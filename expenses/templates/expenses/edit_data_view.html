@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .edit-view-container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 20px;
+        background-color: #fdfdfd;
+    }
+
+    .edit-view-container h2 {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .edit-view-container h3 {
+        margin-top: 30px;
+        color: #333;
+    }
+
+    .edit-view-container table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 30px;
+    }
+
+    .edit-view-container table th,
+    .edit-view-container table td {
+        padding: 10px;
+        border: 1px solid #ccc;
+        text-align: left;
+    }
+
+    .edit-view-container table th {
+        background-color: #f0f0f0;
+    }
+
+    .edit-view-container a.button-link {
+        display: inline-block;
+        padding: 6px 12px;
+        background-color: #007bff;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+    }
+
+    .edit-view-container a.button-link:hover {
+        background-color: #0056b3;
+    }
+
+    .edit-view-container .back-link {
+        display: inline-block;
+        margin-top: 20px;
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .edit-view-container .back-link:hover {
+        text-decoration: underline;
+    }
+
+    .edit-view-container p {
+        text-align: center;
+        font-style: italic;
+        color: #666;
+    }
+</style>
+
+<div class="edit-view-container">
+    <h2>Редактирование данных за {{ year }}{% if month %} – месяц {{ month }}{% endif %}</h2>
+
+    {% for month, data in grouped_data.items %}
+        <h3>{{ month|date:"F" }}</h3>
+        <table>
+            <tr>
+                <th>Категория</th>
+                <th>Сумма</th>
+                <th>Действие</th>
+            </tr>
+            {% for e in data.expenses %}
+            <tr>
+                <td>{{ e.get_category_display }}</td>
+                <td>{{ e.amount }}</td>
+                <td><a href="{% url 'expenses:edit_expense' e.id %}" class="button-link">Редактировать</a></td>
+            </tr>
+            {% endfor %}
+
+            <tr><th colspan="3">Показания счётчиков</th></tr>
+            {% for r in data.readings %}
+            <tr>
+                <td>{{ r.get_category_display }}</td>
+                <td>{{ r.value }}</td>
+                <td><a href="{% url 'expenses:edit_meter_reading' r.id %}" class="button-link">Редактировать</a></td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% empty %}
+        <p>Нет данных</p>
+    {% endfor %}
+
+    <a href="{% url 'expenses:edit_data_selector' %}" class="back-link">← Назад</a>
+</div>
+{% endblock %}

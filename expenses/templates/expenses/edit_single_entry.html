@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .edit-form-container {
+        max-width: 600px;
+        margin: 40px auto;
+        padding: 30px;
+        background-color: #fdfdfd;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+    }
+
+    .edit-form-container h2 {
+        text-align: center;
+        margin-bottom: 25px;
+    }
+
+    .edit-form-container form {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .edit-form-container form p {
+        margin-bottom: 15px;
+    }
+
+    .edit-form-container button {
+        padding: 10px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        cursor: pointer;
+    }
+
+    .edit-form-container button:hover {
+        background-color: #218838;
+    }
+
+    .edit-form-container a.cancel-link {
+        display: inline-block;
+        text-align: center;
+        color: #007bff;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .edit-form-container a.cancel-link:hover {
+        text-decoration: underline;
+    }
+</style>
+
+<div class="edit-form-container">
+    <h2>Редактировать запись</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Сохранить</button>
+        <a href="{% url 'expenses:edit_data_selector' %}" class="cancel-link">Отмена</a>
+    </form>
+</div>
+{% endblock %}

@@ -8,6 +8,7 @@ from datetime import date, timedelta, datetime
 from calendar import monthrange
 from django.utils import timezone
 from decimal import Decimal
+from collections import defaultdict
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -41,6 +42,7 @@ from expenses.models import MonthlyUsage
 
 from django.utils.translation import gettext_lazy as _
 from dateutil.relativedelta import relativedelta
+from django.utils.translation import gettext_lazy as _
 
 
 
@@ -908,22 +910,58 @@ def save_monthly_usage(user, category, reading_date):
 
 
 @login_required
-def meter_reading_list(request):
-    readings = MeterReading.objects.filter(user=request.user).order_by('-date', 'category')
-    return render(request, 'expenses/meter_reading_list.html', {'readings': readings})
-
+def edit_data_selector(request):
+    current_year = timezone.now().year
+    years = range(current_year - 5, current_year + 2)
+    months = [(i, _(calendar.month_name[i])) for i in range(1, 13)]
+    return render(request, 'expenses/edit_data_selector.html', {
+        'years': years,
+        'months': months,
+        'current_year': current_year,
+    })
 
 @login_required
-def edit_all_list(request, reading_id):
-    reading = get_object_or_404(MeterReading, id=reading_id, user=request.user)
+def edit_data_view(request):
+    user = request.user
+    year = int(request.GET.get('year'))
+    month = request.GET.get('month')
 
-    if request.method == 'POST':
-        form = MeterReadingForm(request.POST, instance=reading)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Показания успешно обновлены.')
-            return redirect('expenses:meter_reading_list')
-    else:
-        form = MeterReadingForm(instance=reading)
+    expenses = Expense.objects.filter(user=user, date__year=year)
+    meter_readings = MeterReading.objects.filter(user=user, date__year=year)
 
-    return render(request, 'expenses/edit_all_data.html', {'form': form, 'reading': reading})
+    if month:
+        expenses = expenses.filter(date__month=int(month))
+        meter_readings = meter_readings.filter(date__month=int(month))
+
+    grouped_data = defaultdict(lambda: {'expenses': [], 'readings': []})
+    for e in expenses:
+        grouped_data[e.date.month]['expenses'].append(e)
+    for r in meter_readings:
+        grouped_data[r.date.month]['readings'].append(r)
+
+    return render(request, 'expenses/edit_data_view.html', {
+        'grouped_data': dict(sorted(grouped_data.items())),
+        'year': year,
+        'month': int(month) if month else None,
+    })
+
+@login_required
+def edit_expense(request, pk):
+    expense = get_object_or_404(Expense, pk=pk, user=request.user)
+    form = ExpenseForm(request.POST or None, instance=expense)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Данные по расходу обновлены.')
+        return redirect('expenses:edit_data_selector')
+    return render(request, 'expenses/edit_single_entry.html', {'form': form})
+
+@login_required
+def edit_meter_reading(request, pk):
+    reading = get_object_or_404(MeterReading, pk=pk, user=request.user)
+    form = MeterReadingForm(request.POST or None, instance=reading)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Показание счётчика обновлено.')
+        return redirect('expenses:edit_data_selector')
+    return render(request, 'expenses/edit_single_entry.html', {'form': form})
+
