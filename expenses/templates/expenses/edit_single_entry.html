@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-
+{% load i18n %}
 {% block content %}
 <style>
     .edit-form-container {
@@ -53,12 +53,12 @@
 </style>
 
 <div class="edit-form-container">
-    <h2>Редактировать запись</h2>
+    <h2>{% blocktrans %}Редактировать запись{% endblocktrans %}</h2>
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit">Сохранить</button>
-        <a href="{% url 'expenses:edit_data_selector' %}" class="cancel-link">Отмена</a>
+        <button type="submit">{% trans "Сохранить" %}</button>
+        <a href="{% url 'expenses:edit_data_selector' %}" class="cancel-link">{% trans "Отмена" %}</a>
     </form>
 </div>
 {% endblock %}

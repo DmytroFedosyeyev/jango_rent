@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-
+{% load i18n %}
 {% block content %}
 <style>
     .edit-form-container {
@@ -47,24 +47,24 @@
 </style>
 
 <div class="edit-form-container">
-    <h2>Редактировать данные</h2>
+    <h2>{% trans "Редактировать данные" %}</h2>
     <form method="get" action="{% url 'expenses:edit_data_view' %}">
-        <label for="year">Год:</label>
+        <label for="year">{% trans "Год:" %}</label>
         <select name="year" id="year">
             {% for y in years %}
             <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
             {% endfor %}
         </select>
 
-        <label for="month">Месяц (опционально):</label>
+        <label for="month">{% trans "Месяц (опционально):" %}</label>
         <select name="month" id="month">
-            <option value="">---</option>
+            <option value="">{% trans "---" %}</option>
             {% for number, name in months %}
             <option value="{{ number }}">{{ name }}</option>
             {% endfor %}
         </select>
 
-        <button type="submit">OK</button>
+        <button type="submit">{% trans "OK" %}</button>
     </form>
 </div>
 {% endblock %}

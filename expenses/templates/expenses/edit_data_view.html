@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-
+{% load i18n %}
 {% block content %}
 <style>
     .edit-view-container {
@@ -68,37 +68,51 @@
 </style>
 
 <div class="edit-view-container">
-    <h2>Редактирование данных за {{ year }}{% if month %} – месяц {{ month }}{% endif %}</h2>
+    <h2>
+        {% blocktrans %}Редактирование данных за {{ year }}{% endblocktrans %}
+        {% if month %}
+            {% blocktrans with month_name=month|date:"F" %}– месяц {{ month_name }}{% endblocktrans %}
+        {% endif %}
+    </h2>
 
-    {% for month, data in grouped_data.items %}
-        <h3>{{ month|date:"F" }}</h3>
+    {% for month_data, data in grouped_data.items %}
+        <h3>
+            {% if month_data|date:"n" == month|stringformat:"s" %}
+                {% blocktrans with month_name=month_data|date:"F" %}{{ month_name }}{% endblocktrans %}
+            {% else %}
+                {{ month_data|date:"F" }}
+            {% endif %}
+        </h3>
+
         <table>
             <tr>
-                <th>Категория</th>
-                <th>Сумма</th>
-                <th>Действие</th>
+                <th>{% trans "Категория" %}</th>
+                <th>{% trans "Сумма" %}</th>
+                <th>{% trans "Действие" %}</th>
             </tr>
+
             {% for e in data.expenses %}
             <tr>
                 <td>{{ e.get_category_display }}</td>
                 <td>{{ e.amount }}</td>
-                <td><a href="{% url 'expenses:edit_expense' e.id %}" class="button-link">Редактировать</a></td>
+                <td><a href="{% url 'expenses:edit_expense' e.id %}" class="button-link">{% trans "Редактировать" %}</a></td>
             </tr>
             {% endfor %}
 
-            <tr><th colspan="3">Показания счётчиков</th></tr>
+            <tr><th colspan="3">{% trans "Показания счётчиков" %}</th></tr>
+
             {% for r in data.readings %}
             <tr>
                 <td>{{ r.get_category_display }}</td>
                 <td>{{ r.value }}</td>
-                <td><a href="{% url 'expenses:edit_meter_reading' r.id %}" class="button-link">Редактировать</a></td>
+                <td><a href="{% url 'expenses:edit_meter_reading' r.id %}" class="button-link">{% trans "Редактировать" %}</a></td>
             </tr>
             {% endfor %}
         </table>
     {% empty %}
-        <p>Нет данных</p>
+        <p>{% trans "Нет данных" %}</p>
     {% endfor %}
 
-    <a href="{% url 'expenses:edit_data_selector' %}" class="back-link">← Назад</a>
+    <a href="{% url 'expenses:edit_data_selector' %}" class="back-link">← {% trans "Назад" %}</a>
 </div>
 {% endblock %}

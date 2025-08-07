@@ -567,3 +567,87 @@ msgstr "Yes, replace"
 
 msgid "Отмена"
 msgstr "Cancel"
+
+msgid "Редактировать данные"
+msgstr "Edit data"
+
+msgid "Год:"
+msgstr "Year:"
+
+msgid "Месяц (опционально):"
+msgstr "Month (optional):"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Январь"
+msgstr "January"
+
+msgid "Февраль"
+msgstr "February"
+
+msgid "Март"
+msgstr "March"
+
+msgid "Апрель"
+msgstr "April"
+
+msgid "Май"
+msgstr "May"
+
+msgid "Июнь"
+msgstr "June"
+
+msgid "Июль"
+msgstr "July"
+
+msgid "Август"
+msgstr "August"
+
+msgid "Сентябрь"
+msgstr "September"
+
+msgid "Октябрь"
+msgstr "October"
+
+msgid "Ноябрь"
+msgstr "November"
+
+msgid "Декабрь"
+msgstr "December"
+
+msgid "Редактирование данных за"
+msgstr "Editing data for"
+
+msgid "месяц"
+msgstr "month"
+
+msgid "Категория"
+msgstr "Category"
+
+msgid "Сумма"
+msgstr "Amount"
+
+msgid "Действие"
+msgstr "Action"
+
+msgid "Редактировать"
+msgstr "Edit"
+
+msgid "Показания счётчиков"
+msgstr "Meter readings"
+
+msgid "Нет данных"
+msgstr "No data"
+
+msgid "← Назад"
+msgstr "← Back"
+
+msgid "Редактировать запись"
+msgstr "Edit entry"
+
+msgid "Сохранить"
+msgstr "Save"
+
+msgid "Отмена"
+msgstr "Cancel"
