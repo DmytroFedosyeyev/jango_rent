@@ -247,7 +247,7 @@
         <a href="{% url 'expenses:overview' %}">{% trans "Обзор расходов" %}</a>
         <a href="{% url 'expenses:add_expense' %}">{% trans "Добавить расход" %}</a>
         <a href="{% url 'expenses:filter_expenses' %}">{% trans "Выборка за период" %}</a>
-        <a href="{% url 'expenses:edit_data_selector' %}">Редактировать показания</a>
+        <a href="{% url 'expenses:edit_data_selector' %}">{% trans "Редактировать показания" %}</a>
 
          <!-- Форма переключения языка -->
         <form action="{% url 'set_language' %}" method="post" style="margin-left:auto;">
