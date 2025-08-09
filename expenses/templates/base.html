@@ -238,6 +238,65 @@
             text-decoration: underline;
         }
 
+        /* --- Адаптив под телефоны и маленькие планшеты --- */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            nav {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            nav a {
+                margin-right: 0;
+                font-size: 14px;
+            }
+
+            .logout-form {
+                margin-left: 0;
+                width: 100%;
+            }
+
+            .logout-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .container {
+                padding: 15px;
+                max-width: 100%;
+            }
+
+            .table th, .table td {
+                padding: 8px;
+                font-size: 12px;
+            }
+        }
+
+        /* --- Экстремально маленькие экраны (<480px) --- */
+        @media (max-width: 480px) {
+            nav {
+                gap: 6px;
+            }
+
+            nav a {
+                font-size: 13px;
+            }
+
+            h2 {
+                font-size: 18px;
+            }
+
+            .btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+        }
+
+
     </style>
 </head>
 <body>
