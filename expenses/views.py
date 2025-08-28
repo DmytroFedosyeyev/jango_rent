@@ -142,33 +142,42 @@ def add_expense(request):
                     f"Meter form valid for date {date_}. Electricity: {electricity_usage}, Cold water: {cold_water_usage}, Hot water: {hot_water_usage}")
 
                 if electricity_usage is not None:
-                    MeterReading.objects.create(
+                    obj, created = MeterReading.objects.update_or_create(
                         user=request.user,
                         category='electricity',
-                        value=electricity_usage,
-                        date=date_
+                        date=date_,
+                        defaults={'value': electricity_usage}
                     )
-                    logger.debug("Saved electricity reading.")
+                    if created:
+                        logger.debug(f"Created electricity reading for {date_}")
+                    else:
+                        logger.debug(f"Updated electricity reading for {date_}")
                     save_monthly_usage(request.user, 'electricity', date_)
 
                 if cold_water_usage is not None:
-                    MeterReading.objects.create(
+                    obj, created = MeterReading.objects.update_or_create(
                         user=request.user,
                         category='cold_water',
-                        value=cold_water_usage,
-                        date=date_
+                        date=date_,
+                        defaults={'value': cold_water_usage}
                     )
-                    logger.debug("Saved cold water reading.")
+                    if created:
+                        logger.debug(f"Created cold water reading for {date_}")
+                    else:
+                        logger.debug(f"Updated cold water reading for {date_}")
                     save_monthly_usage(request.user, 'cold_water', date_)
 
                 if hot_water_usage is not None:
-                    MeterReading.objects.create(
+                    obj, created = MeterReading.objects.update_or_create(
                         user=request.user,
                         category='hot_water',
-                        value=hot_water_usage,
-                        date=date_
+                        date=date_,
+                        defaults={'value': hot_water_usage}
                     )
-                    logger.debug("Saved hot water reading.")
+                    if created:
+                        logger.debug(f"Created hot water reading for {date_}")
+                    else:
+                        logger.debug(f"Updated hot water reading for {date_}")
                     save_monthly_usage(request.user, 'hot_water', date_)
 
                 messages.success(request, "✅ Показания счётчиков успешно добавлены.")
